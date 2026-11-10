@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fil">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <title>PBB LIVE STUDIO - KARLDANE</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient macOS Wallpaper Orbs -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  
+  <!-- Premium macOS Splash Screen with Interaction -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <img src="loadingpbb.jpeg" alt="PBB Collab 3.0" class="splash-logo">
+      
+      <!-- Loading UI (Hides when done) -->
+      <div id="splash-loading-ui">
+        <div class="splash-loader">
+          <div class="splash-progress"></div>
+        </div>
+        <div class="splash-text">Initializing Studio...</div>
+      </div>
+
+      <!-- Enter Button (Reveals when loading finishes) -->
+      <button id="splash-enter-btn">
+        <span>Enter Studio</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="wrap" class="mac-window">
+    <!-- macOS Window Titlebar -->
+    <div class="mac-titlebar">
+      <div class="traffic-lights">
+        <span class="light close" title="Reset Player" id="tl-close"></span>
+        <span class="light minimize" title="4-Grid View" id="tl-grid"></span>
+        <span class="light maximize" title="Full Screen" id="tl-fs"></span>
+      </div>
+      <div class="window-title">
+        <span class="live-dot"></span>
+        <span id="active-channel-title">PBB All Access Studio</span>
+      </div>
+      <div class="titlebar-spacer"></div>
+    </div>
+
+    <div class="mac-content">
+      <!-- Video Stage -->
+      <div id="stage">
+        <div class="vid-container" id="vid-container">
+          <video id="v" playsinline></video>
+          <div id="hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            Tap to unmute
+          </div>
+        </div>
+
+        <!-- 4-View Multi-Grid -->
+        <div id="grid-container">
+          <div class="grid-item" data-idx="0">
+            <div class="grid-label"><span class="mini-dot"></span>PBB All Access</div>
+            <video id="gv0" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="1">
+            <div class="grid-label"><span class="mini-dot"></span>PBB Dining Area</div>
+            <video id="gv1" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="2">
+            <div class="grid-label"><span class="mini-dot"></span>PBB External Den</div>
+            <video id="gv2" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="3">
+            <div class="grid-label"><span class="mini-dot"></span>PBB Main Live</div>
+            <video id="gv3" playsinline muted></video>
+          </div>
+        </div>
+
+        <!-- Frosted Loading Overlay -->
+        <div id="load" class="show">
+          <div class="load-glass">
+            <div class="arc"></div>
+            <div class="t">Buffering Stream</div>
+            <div class="s">Starting...</div>
+          </div>
+        </div>
+
+        <!-- Floating macOS QuickTime HUD Controls -->
+        <div id="controls">
+          <div class="hud-top">
+            <span class="live-tag-left">LIVE STREAM</span>
+            <div id="progress-container"><div id="progress-bar"></div></div>
+            <div class="live-badge-right">LIVE</div>
+          </div>
+          <div class="hud-bottom">
+            <div class="ctrl-btns">
+              <button class="btn-icn" id="play-btn" title="Play/Pause">
+                <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
+                <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              </button>
+            </div>
+            <div class="ctrl-btns">
+              <button class="btn-icn pill-btn" id="grid-btn" title="4-View Multi-Cam">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zM3 13v8h8v-8H3zm6 6H5v-4h4v4zm2-16h8v8h-8V3zm6 6h-4V5h4v4zm-8 4h8v8h-8v-8zm6 6h-4v-4h4v4z"/></svg>
+                <span>Multi-View</span>
+              </button>
+              <button class="btn-icn" id="fs-btn" title="Full Screen">
+                <svg id="fs-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- macOS Frosted Sidebar / Channel Dock -->
+      <div id="side">
+        <div class="sidebar-header">
+          <div id="title">CAMERA FEEDS</div>
+          <div class="header-badges">
+            <!-- Premium Visit Counter -->
+            <div class="visit-count" title="Total Page Visits">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span id="visit-num">--</span>
+            </div>
+            <div class="cam-count">4 LIVE</div>
+          </div>
+        </div>
+
+        <!-- THIS WAS THE MISSING LINE CAUSING THE ERROR -->
+        <div id="channels"></div>
+        
+      </div> <!-- Closes #side -->
+    </div> <!-- Closes .mac-content -->
+  </div> <!-- Closes #wrap -->
+
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
+  <script src="data.js"></script>
+  <!-- Make sure this matches your script file name -->
+  <script src="script.js"></script>
+  
+  <!-- Premium Ambient Background Music -->
+  <audio id="bg-music" loop preload="auto">
+    <source src="pinoy_ako.mp3" type="audio/mpeg">
+  </audio>
+</body>
+</html>
