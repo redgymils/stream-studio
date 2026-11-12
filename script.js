@@ -6,8 +6,11 @@ var playBtn = document.getElementById('play-btn');
 var playIcon = document.getElementById('play-icon');
 var muteBtn = document.getElementById('mute-btn');
 var volIcon = document.getElementById('vol-icon');
+var volSlider = document.getElementById('vol-slider');
 var fsBtn = document.getElementById('fs-btn');
 var gridBtn = document.getElementById('grid-btn');
+var pipBtn = document.getElementById('pip-btn');
+var liveBtn = document.getElementById('live-btn');
 var gridContainer = document.getElementById('grid-container');
 var vidContainer = document.getElementById('vid-container');
 var activeTitle = document.getElementById('active-channel-title');
@@ -29,6 +32,8 @@ var scale = 1, rotation = 0, startDist = 0, isTouching = false;
 
 // Suspend players to save battery and network when tab is minimized
 document.addEventListener("visibilitychange", function() {
+  if (document.pictureInPictureElement) return; 
+
   if (document.hidden) {
     if (isGridMode) {
       gridPlayers.forEach(p => { if (p.getMediaElement()) p.getMediaElement().pause(); });
@@ -36,13 +41,53 @@ document.addEventListener("visibilitychange", function() {
       vid.pause();
     }
   } else {
+    // Re-entering the tab
     if (isGridMode) {
       gridPlayers.forEach(p => { if (p.getMediaElement()) p.getMediaElement().play(); });
-    } else if (vid.paused) {
-      vid.play().catch(e => {});
+    } else {
+      // Auto-sync back to the live edge instantly without making the user click
+      if (player) {
+        var r = player.seekRange();
+        if (r) vid.currentTime = r.end - 1;
+      }
+      if (vid.paused) {
+        vid.play().catch(e => {});
+      }
     }
   }
 });
+
+// Picture-in-Picture Logic
+if (pipBtn) {
+  pipBtn.onclick = async function() {
+    if (isGridMode) {
+      alert("Picture-in-Picture is only available in single-camera view.");
+      return;
+    }
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (vid.requestPictureInPicture) {
+        await vid.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn("PiP not supported or blocked by browser.");
+    }
+  };
+}
+
+// Jump to Live Logic
+liveBtn.onclick = function() {
+  if (player && !isGridMode) {
+    var r = player.seekRange();
+    if (r) vid.currentTime = r.end - 1;
+    if (vid.paused) vid.play();
+    
+    // Instantly reset button look on click
+    liveBtn.classList.remove('behind-live');
+    liveBtn.textContent = 'LIVE';
+  }
+};
 
 stage.addEventListener('touchstart', function(e) {
   if (e.touches.length === 2 && !isGridMode) {
@@ -109,7 +154,6 @@ function stopWatch() {
 function updateResolutionMenu() {
   if (!player) return;
   resoMenu.innerHTML = '';
-  
   var tracks = player.getVariantTracks();
   var heights = [...new Set(tracks.map(t => t.height).filter(Boolean))].sort((a, b) => b - a);
 
@@ -172,7 +216,6 @@ async function play(i) {
 
   try {
     shaka.polyfill.installAll();
-    
     if (player) { try { await player.destroy(); } catch(e){} player = null; }
 
     player = new shaka.Player();
@@ -199,24 +242,36 @@ async function play(i) {
     
     updateResolutionMenu();
     resoLabel.textContent = 'AUTO';
-    
     setLoad(false);
+    
     try {
       await vid.play();
       updatePlayIcon();
+      updateVolIcon();
     } catch(e) {
       vid.muted = true;
-      try { await vid.play(); updatePlayIcon(); } catch(e2) {}
+      try { await vid.play(); updatePlayIcon(); updateVolIcon(); } catch(e2) {}
       hint.style.display = 'flex';
     }
 
+    // Dynamic Live Edge Monitor
     watchdog = setInterval(function() {
       try {
-        if (!player || vid.paused) return;
+        if (!player || vid.paused || isGridMode) return;
         var r = player.seekRange();
+        
         if (r.end - vid.currentTime > 12) vid.currentTime = r.end - 1;
+        
+        // Dynamic Button State
+        if (r.end - vid.currentTime > 4) {
+          liveBtn.classList.add('behind-live');
+          liveBtn.textContent = 'SYNC TO LIVE';
+        } else {
+          liveBtn.classList.remove('behind-live');
+          liveBtn.textContent = 'LIVE';
+        }
       } catch(e) {}
-    }, 8000);
+    }, 2000);
   } catch(e) {
     setLoad(true, ch[0], 'Error: ' + (e && e.message ? e.message : e));
   }
@@ -233,6 +288,7 @@ async function startGridMode() {
   vidContainer.style.display = 'none';
   gridContainer.style.display = 'grid';
   hint.style.display = 'none';
+  liveBtn.style.display = 'none';
   setLoad(true, "All Channels", "Loading please wait...");
 
   for (let gp of gridPlayers) {
@@ -248,10 +304,9 @@ async function startGridMode() {
     gridPlayers.push(gp);
     await gp.attach(gvid);
 
-    // Highly Optimized Grid Configuration
     var gpConfig = {
       streaming: { bufferingGoal: 10, rebufferingGoal: 2, bufferBehind: 5 },
-      restrictions: { maxHeight: 480 } // Forces lowest possible resolution for monitoring
+      restrictions: { maxHeight: 480 } 
     };
     if (ch[2] && ch[2].includes(':')) {
       gpConfig.drm = { clearKeys: { [ch[2].split(':')[0]]: ch[2].split(':')[1] } };
@@ -272,6 +327,7 @@ async function startGridMode() {
 async function stopGridMode(targetIndex) {
   isGridMode = false;
   gridBtn.classList.remove('active-mode');
+  liveBtn.style.display = 'flex';
   for (let gp of gridPlayers) {
     try { await gp.destroy(); } catch(e){}
   }
@@ -312,16 +368,30 @@ playBtn.onclick = function() {
   }
 };
 
+function updateVolIcon() {
+  if (vid.muted || vid.volume === 0) {
+    volIcon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+    volSlider.value = 0;
+  } else {
+    volIcon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+    volSlider.value = vid.volume;
+  }
+}
+
 muteBtn.onclick = function() {
   if (isGridMode) return;
   vid.muted = !vid.muted;
-  if (vid.muted) {
-    volIcon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
-  } else {
-    volIcon.innerHTML = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
-  }
+  if (!vid.muted && vid.volume === 0) vid.volume = 1;
+  updateVolIcon();
   hint.style.display = 'none';
 };
+
+volSlider.addEventListener('input', function(e) {
+  if (isGridMode) return;
+  vid.volume = e.target.value;
+  vid.muted = (vid.volume == 0);
+  updateVolIcon();
+});
 
 var isFsActive = false;
 
@@ -334,7 +404,6 @@ function syncLandscapeState() {
     stage.classList.remove('force-landscape');
     return;
   }
-
   if (window.innerHeight > window.innerWidth) {
     stage.classList.add('force-landscape');
   } else {
@@ -351,9 +420,7 @@ function toggleFullScreen() {
     if (req) {
       req.call(stage).then(function() {
         if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(function() {
-            syncLandscapeState();
-          });
+          screen.orientation.lock('landscape').catch(function() { syncLandscapeState(); });
         }
         setTimeout(syncLandscapeState, 150);
       }).catch(function() {
@@ -371,16 +438,12 @@ function toggleFullScreen() {
     }
     stage.classList.remove('pseudo-fs');
     stage.classList.remove('force-landscape');
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
-    }
+    if (screen.orientation && screen.orientation.unlock) { screen.orientation.unlock(); }
   }
 }
 
 window.addEventListener('resize', syncLandscapeState);
-window.addEventListener('orientationchange', function() {
-  setTimeout(syncLandscapeState, 200);
-});
+window.addEventListener('orientationchange', function() { setTimeout(syncLandscapeState, 200); });
 document.addEventListener('fullscreenchange', syncLandscapeState);
 document.addEventListener('webkitfullscreenchange', syncLandscapeState);
 
@@ -413,21 +476,17 @@ window.addEventListener('load', function() {
 
 hint.onclick = function() { 
   vid.muted = false; 
+  updateVolIcon();
   hint.style.display = 'none'; 
-  if (bgMusic) {
-    bgMusic.pause();
-    bgMusic.currentTime = 0; 
-  }
+  if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
 };
 
 vid.addEventListener('click', function() { 
   if (vid.muted) { 
     vid.muted = false; 
+    updateVolIcon();
     hint.style.display = 'none'; 
-    if (bgMusic) {
-      bgMusic.pause();
-      bgMusic.currentTime = 0;
-    }
+    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
   } 
 });
 
@@ -475,7 +534,6 @@ function resetHideTimer() {
 
 stage.addEventListener('click', function(e) {
   if (e.target.closest('#controls') || e.target.closest('#side')) return;
-  
   if (controlsEl.classList.contains('hidden')) {
     showControls();
   } else {
@@ -489,7 +547,6 @@ stage.addEventListener('mousemove', function() {
   if (!controlsEl.classList.contains('hidden')) resetHideTimer();
 });
 controlsEl.addEventListener('click', resetHideTimer);
-
 resetHideTimer();
 
 window.addEventListener('load', function() {
@@ -504,7 +561,6 @@ window.addEventListener('load', function() {
       loadingUI.style.opacity = '0';
       loadingUI.style.transform = 'translateY(-15px)';
       loadingUI.style.pointerEvents = 'none';
-      
       setTimeout(function() {
         loadingUI.style.display = 'none';
         enterBtn.classList.add('show');
@@ -516,17 +572,13 @@ window.addEventListener('load', function() {
     enterBtn.addEventListener('click', function() {
       if (bgMusic && vid.muted) {
         bgMusic.volume = 0.2;
-        bgMusic.play().catch(function(e) { console.log('Audio error:', e); });
+        bgMusic.play().catch(function(e) {});
       }
       splash.classList.add('hidden');
       if (appWindow) {
-        setTimeout(function() {
-          appWindow.classList.add('app-loaded');
-        }, 100);
+        setTimeout(function() { appWindow.classList.add('app-loaded'); }, 100);
       }
-      setTimeout(function() {
-        splash.remove();
-      }, 900);
+      setTimeout(function() { splash.remove(); }, 900);
     });
   }
 });
@@ -554,32 +606,3 @@ var sidePanel = document.getElementById('side');
 if (sidePanel) { sidePanel.addEventListener('click', stopBgMusic); }
 var hudControls = document.getElementById('controls');
 if (hudControls) { hudControls.addEventListener('click', stopBgMusic); }
-
-(function injectWatermark() {
-  var wm = document.createElement('div');
-  wm.id = 'author-watermark';
-  wm.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>ENCODED BY <span>KARLDANEMAIPO</span>';
-  document.body.appendChild(wm);
-})();
-
-document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'F12' || e.keyCode === 123) e.preventDefault();
-  if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) e.preventDefault();
-  if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) e.preventDefault();
-  if (e.metaKey && e.altKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'U' || e.key === 'u' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 85)) e.preventDefault();
-});
-
-(function initGlobalCounter() {
-  var visitSpan = document.getElementById('visit-num');
-  if (!visitSpan) return;
-  var baseVisits = 1892;
-  var launchDate = new Date("2026-11-09T07:00:00Z").getTime();
-  function updateGlobalCount() {
-    var now = new Date().getTime(); 
-    var secondsPassed = Math.max((now - launchDate) / 1000, 0);
-    visitSpan.textContent = Math.floor(baseVisits + (secondsPassed / 1800)).toLocaleString();
-  }
-  updateGlobalCount(); 
-  setInterval(updateGlobalCount, 60000);
-})();
