@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <title>PBB LIVE STUDIO - KARLDANE</title>
+  <title>PBB STREAM ONLINE</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -141,7 +141,13 @@
         <div class="sidebar-header">
           <div id="title">CAMERA FEEDS</div>
           <div class="header-badges">
-            <div class="cam-count">4 LIVE</div>
+            
+            <!-- Replaced 4 LIVE with Support Badge -->
+            <button id="donate-btn" class="support-badge" title="Support the Stream">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              SUPPORT
+            </button>
+            
           </div>
         </div>
         <div id="channels"></div>
@@ -151,6 +157,35 @@
           ENCODED BY PSYCHO PATTERN
         </div>
       </div>
+      
+      <!-- Premium Glass Support Modal -->
+  <div id="support-modal" class="hidden">
+    <div class="support-glass">
+      <button id="close-support" class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="support-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff375f" stroke="none">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      </div>
+      <h3 class="support-title">Support the Stream</h3>
+      <p class="support-desc">Your contributions help maintain server costs and keep the studio running 24/7.</p>
+      
+      <div class="support-details">
+        <div class="detail-row">
+          <span class="detail-label">GCash / Maya</span>
+          <!-- CHANGE YOUR NUMBER HERE -->
+          <span class="detail-val">09626615296</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Mari Bank</span>
+          <!-- CHANGE YOUR ACCOUNT NUMBER HERE -->
+          <span class="detail-val">15978919557</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
   <script src="data.js"></script>
