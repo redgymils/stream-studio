@@ -14,26 +14,25 @@
     <div class="orb orb-3"></div>
   </div>
   
-  <!-- Premium macOS Splash Screen with Interaction -->
+  <!-- Ultra-Minimalist Splash Screen -->
   <div id="splash-screen">
     <div class="splash-content">
-      <img src="loadingpbb.jpeg" alt="PBB Collab 3.0" class="splash-logo">
       
-      <!-- Loading UI (Hides when done) -->
+      <!-- Typographic Logo -->
+      <div class="minimal-logo">
+        <span class="live-dot-splash"></span>
+        PBB STREAM ONLINE
+      </div>
+      
+      <!-- Sleek 1px line loader -->
       <div id="splash-loading-ui">
-        <div class="splash-loader">
-          <div class="splash-progress"></div>
-        </div>
-        <div class="splash-text">Initializing Studio...</div>
+        <div class="splash-text">INITIALIZING STUDIO</div>
+        <div class="splash-loader"><div class="splash-progress"></div></div>
       </div>
 
-      <!-- Enter Button (Reveals when loading finishes) -->
-      <button id="splash-enter-btn">
-        <span>Enter Studio</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </button>
+      <!-- Ghost button that inverts on hover -->
+      <button id="splash-enter-btn">ENTER STUDIO</button>
+      
     </div>
   </div>
 
@@ -92,38 +91,43 @@
           </div>
         </div>
 
-        <!-- Floating macOS QuickTime HUD Controls -->
+        <!-- Polished Floating HUD Controls -->
         <div id="controls">
           <div class="hud-top">
-            <span class="live-tag-left">LIVE STREAM</span>
-            <div id="progress-container"><div id="progress-bar"></div></div>
-            <div class="live-badge-right">LIVE</div>
+            <div class="status-left">
+              <span class="mini-live-dot"></span>
+              <span class="live-tag-left">LIVE STREAM</span>
+            </div>
+            <button class="live-badge-right" id="live-btn" title="Jump to Live Edge">LIVE</button>
           </div>
+          
           <div class="hud-bottom">
-            <div class="ctrl-btns">
+            <div class="ctrl-group">
               <button class="btn-icn" id="play-btn" title="Play/Pause">
                 <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               </button>
-              <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
-                <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-              </button>
+              <div class="vol-wrapper">
+                <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
+                  <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="1">
+              </div>
             </div>
-            <div class="ctrl-btns">
+            
+            <div class="ctrl-group">
               <button class="btn-icn pill-btn" id="grid-btn" title="4-View Multi-Cam">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zM3 13v8h8v-8H3zm6 6H5v-4h4v4zm2-16h8v8h-8V3zm6 6h-4V5h4v4zm-8 4h8v8h-8v-8zm6 6h-4v-4h4v4z"/></svg>
-                <span>Multi-View</span>
+                <span class="hide-mobile">Multi-View</span>
               </button>
-              
-              <!-- Resolution UI -->
+              <button class="btn-icn" id="pip-btn" title="Picture-in-Picture">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
+              </button>
               <div class="reso-wrapper" style="position: relative;">
                 <button class="btn-icn" id="reso-btn" title="Quality">
                   <span id="reso-label">AUTO</span>
                 </button>
-                <div id="reso-menu" class="hidden">
-                  <!-- Auto-populated by JS -->
-                </div>
+                <div id="reso-menu" class="hidden"></div>
               </div>
-              
               <button class="btn-icn" id="fs-btn" title="Full Screen">
                 <svg id="fs-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
               </button>
@@ -137,22 +141,13 @@
         <div class="sidebar-header">
           <div id="title">CAMERA FEEDS</div>
           <div class="header-badges">
-            <div class="visit-count" title="Total Page Visits">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span id="visit-num">--</span>
-            </div>
             <div class="cam-count">4 LIVE</div>
           </div>
         </div>
-
         <div id="channels"></div>
-        
-      </div> <!-- Closes #side -->
-    </div> <!-- Closes .mac-content -->
-  </div> <!-- Closes #wrap -->
+      </div> 
+    </div> 
+  </div> 
 
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
   <script src="data.js"></script>
