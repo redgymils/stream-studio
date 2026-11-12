@@ -1,206 +1,165 @@
 <!doctype html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-  <title>PBB LIVE STUDIO - Maintenance</title>
-  <style>
-    :root {
-      --glass-bg: rgba(20, 20, 25, 0.45); 
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-shadow: 0 24px 48px rgba(0, 0, 0, 0.4), inset 0 1.5px 0 rgba(255, 255, 255, 0.15);
-      --accent-blue: #0a84ff;
-      --accent-red: #ff375f;
-      --mac-text: #ffffff;
-      --mac-subtext: rgba(235, 235, 245, 0.6);
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
-
-    html, body {
-      margin: 0; padding: 0; height: 100%; width: 100%;
-      background: #000000; overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-      color: var(--mac-text);
-      -webkit-font-smoothing: antialiased;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Ambient Mesh Background */
-    .ambient-bg {
-      position: fixed; inset: 0; z-index: 0; overflow: hidden;
-      background: radial-gradient(circle at 50% 0%, #111116 0%, #000000 100%);
-    }
-    .orb {
-      position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.6;
-      animation: floatOrb 25s ease-in-out infinite alternate;
-    }
-    .orb-1 { width: 500px; height: 500px; background: #5e5ce6; top: -20%; left: -10%; }
-    .orb-2 { width: 600px; height: 600px; background: #ff375f; bottom: -20%; right: -20%; animation-delay: -8s; }
-    .orb-3 { width: 400px; height: 400px; background: #0a84ff; top: 30%; left: 40%; opacity: 0.4; animation-delay: -15s; }
-    
-    @keyframes floatOrb {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(60px, -50px) scale(1.15); }
-    }
-
-    /* Maintenance Glass Card */
-    .maintenance-card {
-      position: relative; z-index: 10;
-      display: flex; flex-direction: column; align-items: center;
-      text-align: center;
-      background: var(--glass-bg);
-      backdrop-filter: blur(60px) saturate(220%);
-      -webkit-backdrop-filter: blur(60px) saturate(220%);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow);
-      border-radius: 24px;
-      padding: 48px 40px;
-      width: 90%; max-width: 420px;
-      animation: cardFloat 6s ease-in-out infinite alternate, cardReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      opacity: 0; transform: translateY(20px) scale(0.95);
-    }
-
-    @keyframes cardReveal {
-      to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes cardFloat {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-8px); }
-    }
-
-    /* Icon Styling */
-    .icon-container {
-      width: 72px; height: 72px;
-      border-radius: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 24px;
-      box-shadow: 0 12px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
-      position: relative;
-    }
-    .icon-container::after {
-      content: ''; position: absolute; inset: -4px;
-      border-radius: 24px;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-red));
-      z-index: -1; filter: blur(12px); opacity: 0.5;
-      animation: pulseGlow 3s ease-in-out infinite alternate;
-    }
-    .icon-container svg {
-      color: #fff;
-      width: 36px; height: 36px;
-    }
-
-    @keyframes pulseGlow {
-      0% { opacity: 0.3; transform: scale(0.95); }
-      100% { opacity: 0.6; transform: scale(1.05); }
-    }
-
-    /* Typography */
-    .status-badge {
-      background: rgba(255, 189, 46, 0.15);
-      color: #ffbd2e; border: 1px solid rgba(255, 189, 46, 0.3);
-      font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
-      padding: 4px 10px; border-radius: 99px; text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-    h1 {
-      margin: 0 0 12px; font-size: 22px; font-weight: 700;
-      letter-spacing: 0.02em; color: rgba(255,255,255,0.9);
-    }
-    p {
-      margin: 0 0 24px; font-size: 14px; line-height: 1.5;
-      color: var(--mac-subtext);
-    }
-    
-    .loader {
-      display: flex; gap: 6px; justify-content: center; margin-top: 10px;
-    }
-    .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--mac-subtext);
-      animation: dotBounce 1.4s infinite ease-in-out both;
-    }
-    .dot:nth-child(1) { animation-delay: -0.32s; }
-    .dot:nth-child(2) { animation-delay: -0.16s; }
-    
-    @keyframes dotBounce {
-      0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
-      40% { transform: scale(1); opacity: 1; }
-    }
-
-    /* Author Watermark */
-    #author-watermark {
-      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(20, 20, 25, 0.45);
-      backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1.5px 0 rgba(255, 255, 255, 0.15);
-      padding: 8px 16px; border-radius: 99px;
-      font-size: 9.5px; font-weight: 600; letter-spacing: 0.15em;
-      color: var(--mac-subtext); text-transform: uppercase;
-      pointer-events: none; user-select: none;
-      animation: watermarkReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      animation-delay: 0.5s; opacity: 0; transform: translateY(15px);
-    }
-    #author-watermark span { color: #ffffff; font-weight: 800; }
-    #author-watermark svg { color: var(--accent-blue); filter: drop-shadow(0 0 6px rgba(10, 132, 255, 0.8)); }
-    @media (max-width: 820px) {
-      #author-watermark { bottom: 16px; right: 16px; padding: 6px 12px; font-size: 8.5px; }
-    }
-    @keyframes watermarkReveal { to { opacity: 1; transform: translateY(0); } }
-  </style>
+  <title>PBB LIVE STUDIO - KARLDANE</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
   <!-- Ambient macOS Wallpaper Orbs -->
   <div class="ambient-bg">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
   </div>
+  
+  <!-- Premium macOS Splash Screen with Interaction -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <img src="loadingpbb.jpeg" alt="PBB Collab 3.0" class="splash-logo">
+      
+      <!-- Loading UI (Hides when done) -->
+      <div id="splash-loading-ui">
+        <div class="splash-loader">
+          <div class="splash-progress"></div>
+        </div>
+        <div class="splash-text">Initializing Studio...</div>
+      </div>
 
-  <!-- Central Maintenance Card -->
-  <div class="maintenance-card">
-    <div class="icon-container">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-      </svg>
-    </div>
-    
-    <div class="status-badge">System Update</div>
-    <h1>Updating Live Feeds</h1>
-    <p>We are currently refreshing the server keys to bring you the latest streams. The studio broadcast will resume shortly.</p>
-    
-    <div class="loader">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
+      <!-- Enter Button (Reveals when loading finishes) -->
+      <button id="splash-enter-btn">
+        <span>Enter Studio</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
     </div>
   </div>
 
-  <script>
-    // --- Secure Watermark Injection ---
-    (function injectWatermark() {
-      var wm = document.createElement('div');
-      wm.id = 'author-watermark';
-      wm.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>ENCODED BY <span>KARLDANEMAIPO</span>';
-      document.body.appendChild(wm);
-    })();
+  <div id="wrap" class="mac-window">
+    <!-- macOS Window Titlebar -->
+    <div class="mac-titlebar">
+      <div class="traffic-lights">
+        <span class="light close" title="Reset Player" id="tl-close"></span>
+        <span class="light minimize" title="4-Grid View" id="tl-grid"></span>
+        <span class="light maximize" title="Full Screen" id="tl-fs"></span>
+      </div>
+      <div class="window-title">
+        <span class="live-dot"></span>
+        <span id="active-channel-title">PBB All Access Studio</span>
+      </div>
+      <div class="titlebar-spacer"></div>
+    </div>
 
-    // --- Anti-Sniffing & Inspector Protection ---
-    document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'F12' || e.keyCode === 123) { e.preventDefault(); }
-      if (e.ctrlKey && e.shiftKey && (e.key.toLowerCase() === 'i' || e.key.toLowerCase() === 'j' || e.key.toLowerCase() === 'c' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); }
-      if (e.ctrlKey && (e.key.toLowerCase() === 'u' || e.keyCode === 85)) { e.preventDefault(); }
-      if (e.metaKey && e.altKey && (e.key.toLowerCase() === 'i' || e.key.toLowerCase() === 'j' || e.key.toLowerCase() === 'u' || e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 85)) { e.preventDefault(); }
-    });
-  </script>
+    <div class="mac-content">
+      <!-- Video Stage -->
+      <div id="stage">
+        <div class="vid-container" id="vid-container">
+          <video id="v" playsinline></video>
+          <div id="hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            Tap to unmute
+          </div>
+        </div>
 
+        <!-- 4-View Multi-Grid -->
+        <div id="grid-container">
+          <div class="grid-item" data-idx="0">
+            <div class="grid-label"><span class="mini-dot"></span>PBB All Access</div>
+            <video id="gv0" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="1">
+            <div class="grid-label"><span class="mini-dot"></span>PBB Dining Area</div>
+            <video id="gv1" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="2">
+            <div class="grid-label"><span class="mini-dot"></span>PBB External Den</div>
+            <video id="gv2" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="3">
+            <div class="grid-label"><span class="mini-dot"></span>PBB Main Live</div>
+            <video id="gv3" playsinline muted></video>
+          </div>
+        </div>
+
+        <!-- Frosted Loading Overlay -->
+        <div id="load" class="show">
+          <div class="load-glass">
+            <div class="arc"></div>
+            <div class="t">Buffering Stream</div>
+            <div class="s">Starting...</div>
+          </div>
+        </div>
+
+        <!-- Floating macOS QuickTime HUD Controls -->
+        <div id="controls">
+          <div class="hud-top">
+            <span class="live-tag-left">LIVE STREAM</span>
+            <div id="progress-container"><div id="progress-bar"></div></div>
+            <div class="live-badge-right">LIVE</div>
+          </div>
+          <div class="hud-bottom">
+            <div class="ctrl-btns">
+              <button class="btn-icn" id="play-btn" title="Play/Pause">
+                <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
+                <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              </button>
+            </div>
+            <div class="ctrl-btns">
+              <button class="btn-icn pill-btn" id="grid-btn" title="4-View Multi-Cam">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zM3 13v8h8v-8H3zm6 6H5v-4h4v4zm2-16h8v8h-8V3zm6 6h-4V5h4v4zm-8 4h8v8h-8v-8zm6 6h-4v-4h4v4z"/></svg>
+                <span>Multi-View</span>
+              </button>
+              
+              <!-- Resolution UI -->
+              <div class="reso-wrapper" style="position: relative;">
+                <button class="btn-icn" id="reso-btn" title="Quality">
+                  <span id="reso-label">AUTO</span>
+                </button>
+                <div id="reso-menu" class="hidden">
+                  <!-- Auto-populated by JS -->
+                </div>
+              </div>
+              
+              <button class="btn-icn" id="fs-btn" title="Full Screen">
+                <svg id="fs-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- macOS Frosted Sidebar / Channel Dock -->
+      <div id="side">
+        <div class="sidebar-header">
+          <div id="title">CAMERA FEEDS</div>
+          <div class="header-badges">
+            <div class="visit-count" title="Total Page Visits">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <span id="visit-num">--</span>
+            </div>
+            <div class="cam-count">4 LIVE</div>
+          </div>
+        </div>
+
+        <div id="channels"></div>
+        
+      </div> <!-- Closes #side -->
+    </div> <!-- Closes .mac-content -->
+  </div> <!-- Closes #wrap -->
+
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+  
+  <audio id="bg-music" loop preload="auto">
+    <source src="pinoy_ako.mp3" type="audio/mpeg">
+  </audio>
 </body>
 </html>
