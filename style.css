@@ -309,17 +309,41 @@ video {
   animation: splashFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
 }
 
-/* Sharp, widely-spaced typography instead of an image */
-.minimal-logo { 
-  display: flex; align-items: center; gap: 14px; 
-  font-size: 18px; font-weight: 300; letter-spacing: 0.35em; 
-  color: #fff; text-shadow: 0 4px 24px rgba(255,255,255,0.2); 
-  margin-left: 0.35em; /* Optical centering compensation */
+/* --- Transparent Image Logo Styles --- */
+.brand-logo-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: logoFloat 4s ease-in-out infinite alternate;
 }
-.live-dot-splash { 
-  width: 6px; height: 6px; border-radius: 50%; 
-  background: var(--accent-red); box-shadow: 0 0 12px var(--accent-red); 
-  animation: pulseDot 2s infinite; 
+
+.brand-logo {
+  width: 320px;
+  max-width: 85vw;
+  height: auto;
+  object-fit: contain;
+  
+  /* 1. Remove the solid background and border */
+  background: transparent;
+  border: none;
+  
+  /* 2. Use drop-shadow so the glow follows the transparent PNG shape */
+  filter: 
+    drop-shadow(0 15px 20px rgba(0, 0, 0, 0.6))
+    drop-shadow(-10px -10px 25px rgba(255, 55, 95, 0.25)) /* Red ambient glow */
+    drop-shadow(10px 10px 25px rgba(10, 132, 255, 0.25)); /* Blue ambient glow */
+}
+
+@keyframes logoFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px); }
+}
+
+/* Adjust splash content gap for the larger image */
+.splash-content { 
+  display: flex; flex-direction: column; align-items: center; gap: 36px; 
+  animation: splashFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
 }
 
 #splash-loading-ui { 
