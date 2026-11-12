@@ -606,3 +606,27 @@ var sidePanel = document.getElementById('side');
 if (sidePanel) { sidePanel.addEventListener('click', stopBgMusic); }
 var hudControls = document.getElementById('controls');
 if (hudControls) { hudControls.addEventListener('click', stopBgMusic); }
+
+// Support Modal Logic
+window.addEventListener('load', function() {
+  var donateBtn = document.getElementById('donate-btn');
+  var supportModal = document.getElementById('support-modal');
+  var closeSupport = document.getElementById('close-support');
+
+  if (donateBtn && supportModal && closeSupport) {
+    donateBtn.onclick = function() {
+      supportModal.classList.remove('hidden');
+    };
+    
+    closeSupport.onclick = function() {
+      supportModal.classList.add('hidden');
+    };
+    
+    // Close modal if user taps outside the glass box
+    supportModal.addEventListener('click', function(e) {
+      if (e.target === supportModal) {
+        supportModal.classList.add('hidden');
+      }
+    });
+  }
+});
