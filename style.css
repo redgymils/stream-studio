@@ -51,6 +51,15 @@ html, body {
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   overflow: hidden;
+  transform: scale(0.92) translateY(20px);
+  opacity: 0;
+  filter: blur(12px);
+  transition: transform 1.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease-out, filter 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#wrap.mac-window.app-loaded {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  filter: blur(0);
 }
 
 /* Desktop Window Framing */
@@ -98,6 +107,12 @@ html, body {
 .mac-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
 /* Video Stage */
+#stage, .vid-container, video {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 #stage {
   position: relative; width: 100%; height: 45vh; min-height: 250px;
   background: #000; display: flex; flex-direction: column;
@@ -142,7 +157,6 @@ video {
 .status-left { display: flex; align-items: center; gap: 6px; }
 .live-tag-left { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.85); }
 
-/* Update the dot next to "LIVE STREAM" to match the green glow */
 .mini-live-dot { 
   width: 6px; height: 6px; border-radius: 50%;
   background: #32d74b;
@@ -150,7 +164,6 @@ video {
   animation: pulseDot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Dynamic Live Button (Synced = Glowing Green) */
 .live-badge-right {
   background: rgba(50, 215, 75, 0.15); 
   color: #32d74b; 
@@ -160,24 +173,18 @@ video {
   box-shadow: 0 0 12px rgba(50, 215, 75, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
 }
-
 .live-badge-right:hover { 
   background: rgba(50, 215, 75, 0.25); 
   box-shadow: 0 0 16px rgba(50, 215, 75, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
+.live-badge-right:active { transform: scale(0.95); }
 
-.live-badge-right:active { 
-  transform: scale(0.95); 
-}
-
-/* Dynamic Live Button (Behind Live Edge = Alert Red) */
 .live-badge-right.behind-live {
   background: var(--accent-red); 
   color: #fff; 
   border: 1px solid rgba(255, 55, 95, 0.5);
   box-shadow: 0 0 12px rgba(255, 55, 95, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
-
 .live-badge-right.behind-live:hover {
   background: #ff5c77;
   box-shadow: 0 0 16px rgba(255, 55, 95, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.4);
@@ -223,6 +230,8 @@ video {
 .sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
 #title { font-size: 11.5px; font-weight: 700; letter-spacing: .12em; color: var(--mac-subtext); }
 .header-badges { display: flex; align-items: center; gap: 8px; }
+
+#channels { display: flex; flex-direction: column; gap: 12px; }
 
 .r {
   display: flex; align-items: center; justify-content: space-between;
@@ -294,7 +303,7 @@ video {
 }
 #hint:hover { background: rgba(45, 45, 50, 0.75); transform: translate(-50%, -50%) scale(1.05); }
 
-/* --- Ultra-Minimalist Splash Screen --- */
+/* --- Consolidated Ultra-Minimalist Splash Screen --- */
 #splash-screen { 
   position: fixed; inset: 0; z-index: 99999; 
   background: rgba(10, 10, 15, 0.85); 
@@ -305,11 +314,10 @@ video {
 #splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .splash-content { 
-  display: flex; flex-direction: column; align-items: center; gap: 48px; 
+  display: flex; flex-direction: column; align-items: center; gap: 36px; 
   animation: splashFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
 }
 
-/* --- Transparent Image Logo Styles --- */
 .brand-logo-wrapper {
   position: relative;
   display: flex;
@@ -323,27 +331,17 @@ video {
   max-width: 85vw;
   height: auto;
   object-fit: contain;
-  
-  /* 1. Remove the solid background and border */
   background: transparent;
   border: none;
-  
-  /* 2. Use drop-shadow so the glow follows the transparent PNG shape */
   filter: 
     drop-shadow(0 15px 20px rgba(0, 0, 0, 0.6))
-    drop-shadow(-10px -10px 25px rgba(255, 55, 95, 0.25)) /* Red ambient glow */
-    drop-shadow(10px 10px 25px rgba(10, 132, 255, 0.25)); /* Blue ambient glow */
+    drop-shadow(-10px -10px 25px rgba(255, 55, 95, 0.25))
+    drop-shadow(10px 10px 25px rgba(10, 132, 255, 0.25));
 }
 
 @keyframes logoFloat {
   0% { transform: translateY(0); }
   100% { transform: translateY(-12px); }
-}
-
-/* Adjust splash content gap for the larger image */
-.splash-content { 
-  display: flex; flex-direction: column; align-items: center; gap: 36px; 
-  animation: splashFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
 }
 
 #splash-loading-ui { 
@@ -355,7 +353,6 @@ video {
   color: rgba(255, 255, 255, 0.4); margin-left: 0.4em; 
 }
 
-/* Ultra-thin 1px track */
 .splash-loader { 
   width: 160px; height: 1px; background: rgba(255, 255, 255, 0.1); overflow: hidden; 
 }
@@ -365,7 +362,6 @@ video {
   animation: splashLoad 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; 
 }
 
-/* Minimal Ghost Button */
 #splash-enter-btn { 
   display: none; background: transparent; 
   border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; 
@@ -375,8 +371,6 @@ video {
   opacity: 0; transform: translateY(15px); 
 }
 #splash-enter-btn.show { display: block; opacity: 1; transform: translateY(0); }
-
-/* Inverts to solid white on hover for a premium feel */
 #splash-enter-btn:hover { 
   background: #fff; color: #000; box-shadow: 0 0 32px rgba(255,255,255,0.2); 
   transform: scale(1.02); 
@@ -390,15 +384,6 @@ video {
 @keyframes splashLoad { 
   0% { width: 0%; } 30% { width: 45%; } 70% { width: 80%; } 100% { width: 100%; } 
 }
-
-#wrap.mac-window { transform: scale(0.92) translateY(20px); opacity: 0; filter: blur(12px); transition: transform 1.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease-out, filter 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
-#wrap.mac-window.app-loaded { transform: scale(1) translateY(0); opacity: 1; filter: blur(0); }
-
-#splash-loading-ui { display: flex; flex-direction: column; align-items: center; gap: 32px; transition: opacity 0.5s ease, transform 0.5s ease; }
-#splash-enter-btn { display: none; align-items: center; gap: 10px; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 32px; border-radius: 99px; cursor: pointer; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), inset 0 1.5px 0 rgba(255, 255, 255, 0.15); opacity: 0; transform: translateY(15px); transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
-#splash-enter-btn.show { display: flex; opacity: 1; transform: translateY(0); }
-#splash-enter-btn:hover { background: rgba(10, 132, 255, 0.2); border-color: rgba(10, 132, 255, 0.4); box-shadow: 0 12px 32px rgba(10, 132, 255, 0.3), inset 0 1.5px 0 rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
-#splash-enter-btn:active { transform: translateY(1px) scale(0.96); transition: all 0.1s; }
 
 /* --- Resolution Menu --- */
 #reso-label {
@@ -421,21 +406,18 @@ video {
 
 /* === MINIMAL WATERMARK FOOTER === */
 .mac-footer {
-  margin-top: auto; /* Pushes the footer to the absolute bottom of the sidebar */
+  margin-top: auto;
   padding-top: 32px;
   text-align: center;
   font-size: 8.5px;
   font-weight: 600;
   letter-spacing: 0.25em;
-  color: rgba(255, 255, 255, 0.25); /* Faint, low-opacity gray */
+  color: rgba(255, 255, 255, 0.25);
   text-transform: uppercase;
   user-select: none;
   transition: color 0.3s ease;
 }
-
-.mac-footer:hover {
-  color: rgba(255, 255, 255, 0.6); /* Slightly brightens when hovered */
-}
+.mac-footer:hover { color: rgba(255, 255, 255, 0.6); }
 
 /* === SUPPORT BADGE & MODAL === */
 .support-badge {
@@ -501,3 +483,76 @@ video {
 }
 .detail-label { font-size: 10px; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
 .detail-val { font-size: 14px; font-weight: 600; color: #fff; font-family: monospace; letter-spacing: 0.05em; user-select: all; }
+
+.detail-val-group {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
+}
+.copy-btn {
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff; cursor: pointer; padding: 6px 8px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.copy-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: rgba(255, 255, 255, 0.3); }
+.copy-btn:active { transform: scale(0.9); }
+.copy-btn.copied { background: #32d74b; border-color: #32d74b; color: #000; }
+
+
+/* === SUPPORTERS SHOUTOUT WIDGET (CLEAN OLED) === */
+.shoutout-container {
+  margin-top: 24px; /* Adds breathing room from the channel list */
+  background: #0a0a0c; /* Solid dark OLED to block messy background bleed */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shoutout-header {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.4); /* Professional muted gray */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.shoutout-header svg {
+  fill: #ff375f; /* Subtle Apple-red accent */
+  width: 12px; height: 12px;
+}
+.shoutout-marquee {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  /* Fades edges smoothly */
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+.marquee-content {
+  display: inline-block;
+  animation: scrollMarquee 15s linear infinite;
+}
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+.donor {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5); /* Flat subtext */
+}
+.donor-name {
+  font-weight: 600;
+  color: #ffffff; /* Clean white instead of yellow */
+  margin-right: 4px;
+}
+.donor-dot {
+  margin: 0 12px;
+  color: rgba(255, 255, 255, 0.1);
+}
+@keyframes scrollMarquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
