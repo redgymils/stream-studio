@@ -1,5 +1,8 @@
-var vid = document.getElementById('v');
-var stage = document.getElementById('stage');
+(function() {
+  'use strict';
+
+  var vid = document.getElementById('v');
+  var stage = document.getElementById('stage');
 var load = document.getElementById('load');
 var hint = document.getElementById('hint');
 var playBtn = document.getElementById('play-btn');
@@ -14,6 +17,7 @@ var liveBtn = document.getElementById('live-btn');
 var gridContainer = document.getElementById('grid-container');
 var vidContainer = document.getElementById('vid-container');
 var activeTitle = document.getElementById('active-channel-title');
+var bgMusic = document.getElementById('bg-music');
 
 // Resolution Variables
 var resoBtn = document.getElementById('reso-btn');
@@ -26,9 +30,11 @@ var tlGrid = document.getElementById('tl-grid');
 var tlFs = document.getElementById('tl-fs');
 
 var player = null, cur = -1, watchdog = null;
+var isSplashActive = true;
 var isGridMode = false;
 var gridPlayers = [];
 var scale = 1, rotation = 0, startDist = 0, isTouching = false;
+var bgFadeTimer = null;
 
 // Suspend players to save battery and network when tab is minimized
 document.addEventListener("visibilitychange", function() {
@@ -41,17 +47,27 @@ document.addEventListener("visibilitychange", function() {
       vid.pause();
     }
   } else {
-    // Re-entering the tab
     if (isGridMode) {
-      gridPlayers.forEach(p => { if (p.getMediaElement()) p.getMediaElement().play(); });
+      gridPlayers.forEach(p => {
+        var el = p.getMediaElement();
+        if (el) el.play().catch(e => {
+          if (e.name === 'NotAllowedError') console.warn('Grid auto-resume blocked by browser.');
+        });
+      });
     } else {
-      // Auto-sync back to the live edge instantly without making the user click
       if (player) {
         var r = player.seekRange();
-        if (r) vid.currentTime = r.end - 1;
+        if (r && r.end) vid.currentTime = r.end - 1;
       }
       if (vid.paused) {
-        vid.play().catch(e => {});
+        vid.play().catch(e => {
+          if (e.name === 'NotAllowedError') {
+            // Browser blocked auto-resume, prompt user to tap
+            vid.muted = true;
+            hint.innerHTML = 'Tap to resume stream';
+            hint.style.display = 'flex';
+          }
+        });
       }
     }
   }
@@ -80,15 +96,15 @@ if (pipBtn) {
 liveBtn.onclick = function() {
   if (player && !isGridMode) {
     var r = player.seekRange();
-    if (r) vid.currentTime = r.end - 1;
-    if (vid.paused) vid.play();
+    if (r && r.end) vid.currentTime = r.end - 1;
+    if (vid.paused) vid.play().catch(e => {});
     
-    // Instantly reset button look on click
     liveBtn.classList.remove('behind-live');
     liveBtn.textContent = 'LIVE';
   }
 };
 
+// Pinch-to-Zoom & Double-Tap Reset
 stage.addEventListener('touchstart', function(e) {
   if (e.touches.length === 2 && !isGridMode) {
     isTouching = true;
@@ -97,7 +113,7 @@ stage.addEventListener('touchstart', function(e) {
       e.touches[0].pageY - e.touches[1].pageY
     );
   }
-});
+}, { passive: true });
 
 stage.addEventListener('touchmove', function(e) {
   if (!isTouching || e.touches.length !== 2 || isGridMode) return;
@@ -110,7 +126,7 @@ stage.addEventListener('touchmove', function(e) {
   scale = Math.min(Math.max(scale * scaleFactor, 1), 5);
   vid.style.transform = 'scale(' + scale + ') rotate(' + rotation + 'deg)';
   startDist = currentDist;
-});
+}, { passive: false });
 
 stage.addEventListener('touchend', function(e) {
   if (e.touches.length < 2) isTouching = false;
@@ -226,8 +242,23 @@ async function play(i) {
       manifest: { retryParameters: { maxAttempts: 5, baseDelay: 400 } }
     };
 
-    if (ch[2] && ch[2].includes(':')) {
-      playerConfig.drm = { clearKeys: { [ch[2].split(':')[0]]: ch[2].split(':')[1] } };
+    if (ch[2]) {
+      if (ch[2].startsWith('http')) {
+        // Secure Industry Standard: Widevine / PlayReady License Server
+        playerConfig.drm = {
+          servers: {
+            'com.widevine.alpha': ch[2],
+            'com.microsoft.playready': ch[2]
+          },
+          advanced: {
+            'com.widevine.alpha': { videoRobustness: 'SW_SECURE_CRYPTO', audioRobustness: 'SW_SECURE_CRYPTO' }
+          }
+        };
+      } else if (ch[2].includes(':')) {
+        // Insecure Fallback: Plain text ClearKey
+        var parts = ch[2].split(':');
+        playerConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
+      }
     }
 
     player.configure(playerConfig);
@@ -240,6 +271,21 @@ async function play(i) {
 
     await player.load(ch[1]);
     
+    // Reveal Enter button precisely when stream is ready
+    if (isSplashActive) {
+      var loadingUI = document.getElementById('splash-loading-ui');
+      var enterBtn = document.getElementById('splash-enter-btn');
+      if (loadingUI && enterBtn) {
+        loadingUI.style.opacity = '0';
+        loadingUI.style.transform = 'translateY(-15px)';
+        loadingUI.style.pointerEvents = 'none';
+        setTimeout(function() {
+          loadingUI.style.display = 'none';
+          enterBtn.classList.add('show');
+        }, 400); 
+      }
+    }
+    
     updateResolutionMenu();
     resoLabel.textContent = 'AUTO';
     setLoad(false);
@@ -250,7 +296,15 @@ async function play(i) {
       updateVolIcon();
     } catch(e) {
       vid.muted = true;
-      try { await vid.play(); updatePlayIcon(); updateVolIcon(); } catch(e2) {}
+      try { 
+        await vid.play(); 
+        updatePlayIcon(); 
+        updateVolIcon(); 
+      } catch(e2) {
+        if (e2.name !== 'NotAllowedError' && e2.name !== 'AbortError') {
+          console.error('Playback failed even when muted:', e2);
+        }
+      }
       hint.style.display = 'flex';
     }
 
@@ -262,7 +316,6 @@ async function play(i) {
         
         if (r.end - vid.currentTime > 12) vid.currentTime = r.end - 1;
         
-        // Dynamic Button State
         if (r.end - vid.currentTime > 4) {
           liveBtn.classList.add('behind-live');
           liveBtn.textContent = 'SYNC TO LIVE';
@@ -277,6 +330,7 @@ async function play(i) {
   }
 }
 
+// Refactored Parallel Multi-Grid Loading
 async function startGridMode() {
   isGridMode = true;
   gridBtn.classList.add('active-mode');
@@ -289,37 +343,69 @@ async function startGridMode() {
   gridContainer.style.display = 'grid';
   hint.style.display = 'none';
   liveBtn.style.display = 'none';
-  setLoad(true, "All Channels", "Loading please wait...");
+  setLoad(true, "All Channels", "Loading 4-Camera Studio...");
 
-  for (let gp of gridPlayers) {
-    try { await gp.destroy(); } catch(e){}
-  }
+  // Destroy any existing grid players in parallel
+  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(e => console.warn('Grid player cleanup:', e))));
   gridPlayers = [];
 
-  for (let k = 0; k < CH.length; k++) {
-    let gvid = document.getElementById('gv' + k);
-    let ch = CH[k];
-    
-    let gp = new shaka.Player();
+  // Initialize and load all 4 camera feeds simultaneously
+  await Promise.all(CH.map(async function(ch, k) {
+    var gvid = document.getElementById('gv' + k);
+    if (!gvid) return;
+
+    var gp = new shaka.Player();
     gridPlayers.push(gp);
     await gp.attach(gvid);
 
     var gpConfig = {
-      streaming: { bufferingGoal: 10, rebufferingGoal: 2, bufferBehind: 5 },
-      restrictions: { maxHeight: 480 } 
+      // Aggressively lower memory retention and forward-buffering for multi-view
+      streaming: { bufferingGoal: 6, rebufferingGoal: 2, bufferBehind: 1 },
+      restrictions: { maxHeight: 480 }
     };
-    if (ch[2] && ch[2].includes(':')) {
-      gpConfig.drm = { clearKeys: { [ch[2].split(':')[0]]: ch[2].split(':')[1] } };
+    
+    if (ch[2]) {
+      if (ch[2].startsWith('http')) {
+        gpConfig.drm = {
+          servers: {
+            'com.widevine.alpha': ch[2],
+            'com.microsoft.playready': ch[2]
+          }
+        };
+      } else if (ch[2].includes(':')) {
+        var parts = ch[2].split(':');
+        gpConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
+      }
     }
 
     gp.configure(gpConfig);
-    
+
     try {
       await gp.load(ch[1]);
       gvid.muted = true;
       await gvid.play();
-    } catch(e) {}
+    } catch(e) {
+      if (e && e.name !== 'AbortError') {
+        console.error('Grid player failed to load/play:', ch[0], e);
+      }
+    }
+  }));
+
+  // Reveal Enter button precisely when the grid is ready
+  if (isSplashActive) {
+    var loadingUI = document.getElementById('splash-loading-ui');
+    var enterBtn = document.getElementById('splash-enter-btn');
+    if (loadingUI && enterBtn) {
+      loadingUI.style.opacity = '0';
+      loadingUI.style.transform = 'translateY(-15px)';
+      loadingUI.style.pointerEvents = 'none';
+      setTimeout(function() {
+        loadingUI.style.display = 'none';
+        enterBtn.classList.add('show');
+      }, 400); 
+    }
   }
+
   setLoad(false);
   markRow(-1);
 }
@@ -328,10 +414,10 @@ async function stopGridMode(targetIndex) {
   isGridMode = false;
   gridBtn.classList.remove('active-mode');
   liveBtn.style.display = 'flex';
-  for (let gp of gridPlayers) {
-    try { await gp.destroy(); } catch(e){}
-  }
+  
+  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(e => console.warn('Grid player cleanup:', e))));
   gridPlayers = [];
+  
   gridContainer.style.display = 'none';
   vidContainer.style.display = 'flex';
   var nextIdx = (typeof targetIndex === 'number') ? targetIndex : (cur === -1 ? 0 : cur);
@@ -360,10 +446,10 @@ function updatePlayIcon() {
 
 playBtn.onclick = function() {
   if (isGridMode) {
-    let gvids = document.querySelectorAll('.grid-item video');
-    gvids.forEach(v => { if (v.paused) v.play(); else v.pause(); });
+    var gvids = document.querySelectorAll('.grid-item video');
+    gvids.forEach(v => { if (v.paused) v.play().catch(()=>{}); else v.pause(); });
   } else {
-    if (vid.paused) vid.play(); else vid.pause();
+    if (vid.paused) vid.play().catch(()=>{}); else vid.pause();
     updatePlayIcon();
   }
 };
@@ -388,11 +474,12 @@ muteBtn.onclick = function() {
 
 volSlider.addEventListener('input', function(e) {
   if (isGridMode) return;
-  vid.volume = e.target.value;
-  vid.muted = (vid.volume == 0);
+  vid.volume = parseFloat(e.target.value);
+  vid.muted = (vid.volume === 0);
   updateVolIcon();
 });
 
+// Fullscreen & Orientation Logic
 var isFsActive = false;
 
 function syncLandscapeState() {
@@ -452,33 +539,27 @@ if (tlFs) tlFs.onclick = toggleFullScreen;
 if (tlGrid) tlGrid.onclick = function() { gridBtn.click(); };
 if (tlClose) tlClose.onclick = function() { stopGridMode(0); };
 
-var bgMusic = document.getElementById('bg-music');
-
-window.addEventListener('load', function() {
-  if (bgMusic && vid.muted) {
-    bgMusic.volume = 0.6;
-    var playPromise = bgMusic.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(function(error) {
-        window.addEventListener('click', function startAudioOnInteraction() {
-          if (vid.muted) bgMusic.play();
-          window.removeEventListener('click', startAudioOnInteraction);
-        }, { once: true });
-        
-        window.addEventListener('touchstart', function startAudioOnInteractionTouch() {
-          if (vid.muted) bgMusic.play();
-          window.removeEventListener('touchstart', startAudioOnInteractionTouch);
-        }, { once: true });
-      });
+// Safe Background Music Fade-Out (Clamped & Debounced)
+function stopBgMusic() {
+  if (!bgMusic || bgMusic.paused || bgFadeTimer) return;
+  bgFadeTimer = setInterval(function() {
+    if (bgMusic.volume > 0.05) {
+      bgMusic.volume = Math.max(0, +(bgMusic.volume - 0.05).toFixed(2));
+    } else {
+      clearInterval(bgFadeTimer);
+      bgFadeTimer = null;
+      bgMusic.volume = 0;
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
     }
-  }
-});
+  }, 50);
+}
 
 hint.onclick = function() { 
   vid.muted = false; 
   updateVolIcon();
   hint.style.display = 'none'; 
-  if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+  stopBgMusic();
 };
 
 vid.addEventListener('click', function() { 
@@ -486,10 +567,21 @@ vid.addEventListener('click', function() {
     vid.muted = false; 
     updateVolIcon();
     hint.style.display = 'none'; 
-    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+    stopBgMusic();
   } 
 });
 
+vid.addEventListener('volumechange', function() {
+  if (!vid.muted) stopBgMusic();
+});
+
+var sidePanel = document.getElementById('side');
+if (sidePanel) sidePanel.addEventListener('click', stopBgMusic);
+
+var hudControls = document.getElementById('controls');
+if (hudControls) hudControls.addEventListener('click', stopBgMusic);
+
+// Populate Channel Sidebar
 var box = document.getElementById('channels');
 CH.forEach(function(c, i) {
   var row = document.createElement('div');
@@ -513,8 +605,9 @@ CH.forEach(function(c, i) {
   box.appendChild(row);
 });
 
-play(0);
+startGridMode();
 
+// Auto-Hiding HUD Controls
 var controlsEl = document.getElementById('controls');
 var hideTimer = null;
 
@@ -549,30 +642,19 @@ stage.addEventListener('mousemove', function() {
 controlsEl.addEventListener('click', resetHideTimer);
 resetHideTimer();
 
+// Unified Splash Screen & Support Modal Initialization
 window.addEventListener('load', function() {
   var splash = document.getElementById('splash-screen');
-  var loadingUI = document.getElementById('splash-loading-ui');
   var enterBtn = document.getElementById('splash-enter-btn');
   var appWindow = document.getElementById('wrap');
-  var bgMusic = document.getElementById('bg-music');
-
-  setTimeout(function() {
-    if (loadingUI && enterBtn) {
-      loadingUI.style.opacity = '0';
-      loadingUI.style.transform = 'translateY(-15px)';
-      loadingUI.style.pointerEvents = 'none';
-      setTimeout(function() {
-        loadingUI.style.display = 'none';
-        enterBtn.classList.add('show');
-      }, 400); 
-    }
-  }, 2600);
 
   if (enterBtn) {
     enterBtn.addEventListener('click', function() {
+      isSplashActive = false; // Mark splash as finished
+      
       if (bgMusic && vid.muted) {
-        bgMusic.volume = 0.2;
-        bgMusic.play().catch(function(e) {});
+        bgMusic.volume = 0.25;
+        bgMusic.play().catch(function() {});
       }
       splash.classList.add('hidden');
       if (appWindow) {
@@ -581,34 +663,8 @@ window.addEventListener('load', function() {
       setTimeout(function() { splash.remove(); }, 900);
     });
   }
-});
 
-function stopBgMusic() {
-  var bgMusic = document.getElementById('bg-music');
-  if (bgMusic) {
-    var fade = setInterval(function() {
-      if (bgMusic.volume > 0.1) {
-        bgMusic.volume -= 0.1;
-      } else {
-        clearInterval(fade);
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-      }
-    }, 50);
-  }
-}
-
-vid.addEventListener('volumechange', function() {
-  if (!vid.muted) stopBgMusic();
-});
-
-var sidePanel = document.getElementById('side');
-if (sidePanel) { sidePanel.addEventListener('click', stopBgMusic); }
-var hudControls = document.getElementById('controls');
-if (hudControls) { hudControls.addEventListener('click', stopBgMusic); }
-
-// Support Modal Logic
-window.addEventListener('load', function() {
+  // Support Modal Logic
   var donateBtn = document.getElementById('donate-btn');
   var supportModal = document.getElementById('support-modal');
   var closeSupport = document.getElementById('close-support');
@@ -617,16 +673,37 @@ window.addEventListener('load', function() {
     donateBtn.onclick = function() {
       supportModal.classList.remove('hidden');
     };
-    
     closeSupport.onclick = function() {
       supportModal.classList.add('hidden');
     };
-    
-    // Close modal if user taps outside the glass box
-    supportModal.addEventListener('click', function(e) {
-      if (e.target === supportModal) {
-        supportModal.classList.add('hidden');
-      }
-    });
-  }
-});
+          supportModal.addEventListener('click', function(e) {
+        if (e.target === supportModal) {
+          supportModal.classList.add('hidden');
+        }
+      });
+      
+      // Copy to Clipboard Logic
+      var copyBtns = document.querySelectorAll('.copy-btn');
+      copyBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var textToCopy = btn.getAttribute('data-copy');
+          navigator.clipboard.writeText(textToCopy).then(function() {
+            var originalHtml = btn.innerHTML;
+            // Morph into a checkmark icon
+            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            btn.classList.add('copied');
+            
+            // Revert back after 1.5 seconds
+            setTimeout(function() {
+              btn.innerHTML = originalHtml;
+              btn.classList.remove('copied');
+            }, 1500);
+          }).catch(function(err) {
+            console.error('Failed to copy text: ', err);
+          });
+        });
+      });
+    }
+  });
+
+})();
