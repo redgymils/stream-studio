@@ -49,9 +49,9 @@
     <!-- macOS Window Titlebar -->
     <div class="mac-titlebar">
       <div class="traffic-lights">
-        <span class="light close" title="Reset Player" id="tl-close" role="button" tabindex="0" aria-label="Reset Player"></span>
-        <span class="light minimize" title="4-Grid View" id="tl-grid" role="button" tabindex="0" aria-label="Toggle Multi-View"></span>
-        <span class="light maximize" title="Full Screen" id="tl-fs" role="button" tabindex="0" aria-label="Toggle Full Screen"></span>
+        <span class="light close" title="Reset Player" id="tl-close"></span>
+        <span class="light minimize" title="4-Grid View" id="tl-grid"></span>
+        <span class="light maximize" title="Full Screen" id="tl-fs"></span>
       </div>
       <div class="window-title">
         <span class="live-dot"></span>
@@ -112,14 +112,14 @@
           
           <div class="hud-bottom">
             <div class="ctrl-group">
-              <button class="btn-icn" id="play-btn" title="Play/Pause" aria-label="Play or Pause Video">
+              <button class="btn-icn" id="play-btn" title="Play/Pause">
                 <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               </button>
               <div class="vol-wrapper">
-                <button class="btn-icn" id="mute-btn" title="Mute/Unmute" aria-label="Mute or Unmute Audio">
+                <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
                   <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
                 </button>
-                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="1" aria-label="Volume Control">
+                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="1">
               </div>
             </div>
             
@@ -129,11 +129,8 @@
                 <span class="hide-mobile">Multi-View</span>
               </button>
               <button class="btn-icn" id="pip-btn" title="Picture-in-Picture">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
-          </button>
-          <button class="btn-icn" id="aspect-btn" title="Aspect Ratio">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12h-2v3h-3v2h5v-5zM7 9h3V7H5v5h2V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
-          </button>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
+              </button>
               <div class="reso-wrapper" style="position: relative;">
                 <button class="btn-icn" id="reso-btn" title="Quality">
                   <span id="reso-label">AUTO</span>
@@ -161,7 +158,6 @@
         </div>
         <div id="channels"></div>
         
-        
         <!-- Minimal Watermark Footer -->
         <div class="mac-footer">
           ENCODED BY PSYCHO PATTERN
@@ -187,21 +183,11 @@
       <div class="support-details">
         <div class="detail-row">
           <span class="detail-label">GCash / Maya</span>
-          <div class="detail-val-group">
-            <span class="detail-val">09626615296</span>
-            <button class="copy-btn" data-copy="09626615296" aria-label="Copy GCash Number" title="Copy to clipboard">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
-          </div>
+          <span class="detail-val">09626615296</span>
         </div>
         <div class="detail-row">
           <span class="detail-label">Mari Bank</span>
-          <div class="detail-val-group">
-            <span class="detail-val">15978919557</span>
-            <button class="copy-btn" data-copy="15978919557" aria-label="Copy Mari Bank Number" title="Copy to clipboard">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
-          </div>
+          <span class="detail-val">15978919557</span>
         </div>
       </div>
     </div>
