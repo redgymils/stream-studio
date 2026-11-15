@@ -1,8 +1,5 @@
-(function() {
-  'use strict';
-
-  var vid = document.getElementById('v');
-  var stage = document.getElementById('stage');
+var vid = document.getElementById('v');
+var stage = document.getElementById('stage');
 var load = document.getElementById('load');
 var hint = document.getElementById('hint');
 var playBtn = document.getElementById('play-btn');
@@ -14,9 +11,6 @@ var fsBtn = document.getElementById('fs-btn');
 var gridBtn = document.getElementById('grid-btn');
 var pipBtn = document.getElementById('pip-btn');
 var liveBtn = document.getElementById('live-btn');
-var aspectBtn = document.getElementById('aspect-btn');
-var aspectModes = ['mode-contain', 'mode-cover', 'mode-fill'];
-var currentAspectIdx = 0;
 var gridContainer = document.getElementById('grid-container');
 var vidContainer = document.getElementById('vid-container');
 var activeTitle = document.getElementById('active-channel-title');
@@ -33,7 +27,6 @@ var tlGrid = document.getElementById('tl-grid');
 var tlFs = document.getElementById('tl-fs');
 
 var player = null, cur = -1, watchdog = null;
-var isSplashActive = true;
 var isGridMode = false;
 var gridPlayers = [];
 var scale = 1, rotation = 0, startDist = 0, isTouching = false;
@@ -53,9 +46,7 @@ document.addEventListener("visibilitychange", function() {
     if (isGridMode) {
       gridPlayers.forEach(p => {
         var el = p.getMediaElement();
-        if (el) el.play().catch(e => {
-          if (e.name === 'NotAllowedError') console.warn('Grid auto-resume blocked by browser.');
-        });
+        if (el) el.play().catch(e => {});
       });
     } else {
       if (player) {
@@ -63,14 +54,7 @@ document.addEventListener("visibilitychange", function() {
         if (r && r.end) vid.currentTime = r.end - 1;
       }
       if (vid.paused) {
-        vid.play().catch(e => {
-          if (e.name === 'NotAllowedError') {
-            // Browser blocked auto-resume, prompt user to tap
-            vid.muted = true;
-            hint.innerHTML = 'Tap to resume stream';
-            hint.style.display = 'flex';
-          }
-        });
+        vid.play().catch(e => {});
       }
     }
   }
@@ -93,22 +77,6 @@ if (pipBtn) {
       console.warn("PiP not supported or blocked by browser.");
     }
   };
-}
-
-// Aspect Ratio Toggle Logic
-if (aspectBtn) {
-aspectBtn.onclick = function() {
-if (isGridMode) return;
-vid.classList.remove(aspectModes[currentAspectIdx]);
-currentAspectIdx = (currentAspectIdx + 1) % aspectModes.length;
-vid.classList.add(aspectModes[currentAspectIdx]);
-
-// Temporarily flash the current mode on screen
-var modeNames = ['Aspect: 16:9 Fit', 'Aspect: Zoom to Fill', 'Aspect: Stretch'];
-hint.innerHTML = modeNames[currentAspectIdx];
-hint.style.display = 'flex';
-setTimeout(function() { hint.style.display = 'none'; }, 1500);
-};
 }
 
 // Jump to Live Logic
@@ -239,20 +207,13 @@ async function play(i) {
   if (!ch) return;
   cur = i;
   markRow(i);
-  if (activeTitle) activeTitle.textContent = ch.name + ' — Live';
-  setLoad(true, ch.name);
+  if (activeTitle) activeTitle.textContent = ch[0] + ' — Live';
+  setLoad(true, ch[0]);
   stopWatch();
   hint.style.display = 'none';
 
-  // Hide Multi-View if not watching PBB Studio
-  if (ch.category !== 'PBB STUDIO FEEDS') {
-    gridBtn.style.display = 'none';
-  } else {
-    gridBtn.style.display = 'flex';
-  }
-
   if (typeof shaka === 'undefined') {
-    setLoad(true, ch.name, 'Loading please wait...');
+    setLoad(true, ch[0], 'Loading please wait...');
     return;
   }
 
@@ -268,23 +229,9 @@ async function play(i) {
       manifest: { retryParameters: { maxAttempts: 5, baseDelay: 400 } }
     };
 
-    if (ch.key) {
-      if (ch.key.startsWith('http')) {
-        // Secure Industry Standard: Widevine / PlayReady License Server
-        playerConfig.drm = {
-          servers: {
-            'com.widevine.alpha': ch.key,
-            'com.microsoft.playready': ch.key
-          },
-          advanced: {
-            'com.widevine.alpha': { videoRobustness: 'SW_SECURE_CRYPTO', audioRobustness: 'SW_SECURE_CRYPTO' }
-          }
-        };
-      } else if (ch.key.includes(':')) {
-        // Insecure Fallback: Plain text ClearKey
-        var parts = ch.key.split(':');
-        playerConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
-      }
+    if (ch[2] && ch[2].includes(':')) {
+      var parts = ch[2].split(':');
+      playerConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
     }
 
     player.configure(playerConfig);
@@ -292,25 +239,10 @@ async function play(i) {
     player.addEventListener('error', function(e) {
       var code = e.detail && e.detail.code;
       if (code === 7000) return;
-      setLoad(true, ch.name, 'Error ' + code + ' — try again.');
+      setLoad(true, ch[0], 'Error ' + code + ' — try again.');
     });
 
-    await player.load(ch.url);
-    
-    // Reveal Enter button precisely when stream is ready
-    if (isSplashActive) {
-      var loadingUI = document.getElementById('splash-loading-ui');
-      var enterBtn = document.getElementById('splash-enter-btn');
-      if (loadingUI && enterBtn) {
-        loadingUI.style.opacity = '0';
-        loadingUI.style.transform = 'translateY(-15px)';
-        loadingUI.style.pointerEvents = 'none';
-        setTimeout(function() {
-          loadingUI.style.display = 'none';
-          enterBtn.classList.add('show');
-        }, 400); 
-      }
-    }
+    await player.load(ch[1]);
     
     updateResolutionMenu();
     resoLabel.textContent = 'AUTO';
@@ -322,15 +254,7 @@ async function play(i) {
       updateVolIcon();
     } catch(e) {
       vid.muted = true;
-      try { 
-        await vid.play(); 
-        updatePlayIcon(); 
-        updateVolIcon(); 
-      } catch(e2) {
-        if (e2.name !== 'NotAllowedError' && e2.name !== 'AbortError') {
-          console.error('Playback failed even when muted:', e2);
-        }
-      }
+      try { await vid.play(); updatePlayIcon(); updateVolIcon(); } catch(e2) {}
       hint.style.display = 'flex';
     }
 
@@ -371,12 +295,16 @@ async function startGridMode() {
   liveBtn.style.display = 'none';
   setLoad(true, "All Channels", "Loading 4-Camera Studio...");
 
+  if (typeof shaka !== 'undefined') shaka.polyfill.installAll();
+  
+  
+
   // Destroy any existing grid players in parallel
-  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(e => console.warn('Grid player cleanup:', e))));
+  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(() => {})));
   gridPlayers = [];
 
-  // Initialize and load only the first 4 camera feeds (PBB STUDIO) simultaneously
-  await Promise.all(CH.slice(0, 4).map(async function(ch, k) {
+  // Initialize and load all 4 camera feeds simultaneously
+  await Promise.all(CH.map(async function(ch, k) {
     var gvid = document.getElementById('gv' + k);
     if (!gvid) return;
 
@@ -385,52 +313,22 @@ async function startGridMode() {
     await gp.attach(gvid);
 
     var gpConfig = {
-      // Aggressively lower memory retention and forward-buffering for multi-view
-      streaming: { bufferingGoal: 6, rebufferingGoal: 2, bufferBehind: 1 },
+      streaming: { bufferingGoal: 10, rebufferingGoal: 2, bufferBehind: 5 },
       restrictions: { maxHeight: 480 }
     };
-    
-    if (ch.key) {
-      if (ch.key.startsWith('http')) {
-        gpConfig.drm = {
-          servers: {
-            'com.widevine.alpha': ch.key,
-            'com.microsoft.playready': ch.key
-          }
-        };
-      } else if (ch.key.includes(':')) {
-        var parts = ch.key.split(':');
-        gpConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
-      }
+    if (ch[2] && ch[2].includes(':')) {
+      var parts = ch[2].split(':');
+      gpConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
     }
 
     gp.configure(gpConfig);
 
     try {
-      await gp.load(ch.url);
+      await gp.load(ch[1]);
       gvid.muted = true;
       await gvid.play();
-    } catch(e) {
-      if (e && e.name !== 'AbortError') {
-        console.error('Grid player failed to load/play:', ch.name, e);
-      }
-    }
+    } catch(e) {}
   }));
-
-  // Reveal Enter button precisely when the grid is ready
-  if (isSplashActive) {
-    var loadingUI = document.getElementById('splash-loading-ui');
-    var enterBtn = document.getElementById('splash-enter-btn');
-    if (loadingUI && enterBtn) {
-      loadingUI.style.opacity = '0';
-      loadingUI.style.transform = 'translateY(-15px)';
-      loadingUI.style.pointerEvents = 'none';
-      setTimeout(function() {
-        loadingUI.style.display = 'none';
-        enterBtn.classList.add('show');
-      }, 400); 
-    }
-  }
 
   setLoad(false);
   markRow(-1);
@@ -441,7 +339,7 @@ async function stopGridMode(targetIndex) {
   gridBtn.classList.remove('active-mode');
   liveBtn.style.display = 'flex';
   
-  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(e => console.warn('Grid player cleanup:', e))));
+  await Promise.all(gridPlayers.map(gp => gp.destroy().catch(() => {})));
   gridPlayers = [];
   
   gridContainer.style.display = 'none';
@@ -607,69 +505,28 @@ if (sidePanel) sidePanel.addEventListener('click', stopBgMusic);
 var hudControls = document.getElementById('controls');
 if (hudControls) hudControls.addEventListener('click', stopBgMusic);
 
-// Populate Channel Sidebar (Premium Accordion)
+// Populate Channel Sidebar
 var box = document.getElementById('channels');
-var currentCategory = '';
-var currentContainerInner = null;
-
 CH.forEach(function(c, i) {
-  if (c.category !== currentCategory) {
-    // 1. Create Clickable Category Header
-    var catHeader = document.createElement('div');
-    catHeader.className = 'category-header expanded'; 
-    catHeader.innerHTML = `
-      <span>${c.category}</span>
-      <svg class="cat-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="6 9 12 15 18 9"></polyline>
-      </svg>
-    `;
-    
-    // 2. Create Animated Grid Container
-    var catContainer = document.createElement('div');
-    catContainer.className = 'category-container expanded';
-    var catInner = document.createElement('div');
-    catInner.className = 'category-inner';
-    catContainer.appendChild(catInner);
-
-    // 3. Accordion Toggle Logic
-    catHeader.onclick = function() {
-      var isExpanded = catHeader.classList.contains('expanded');
-      if (isExpanded) {
-        catHeader.classList.remove('expanded');
-        catContainer.classList.remove('expanded');
-      } else {
-        catHeader.classList.add('expanded');
-        catContainer.classList.add('expanded');
-      }
-    };
-
-    box.appendChild(catHeader);
-    box.appendChild(catContainer);
-    
-    currentCategory = c.category;
-    currentContainerInner = catInner;
-  }
-
   var row = document.createElement('div');
-  row.className = 'app-card'; // Upgrade to tvOS app card style
-  
-  // Clean fallback: Uses a larger SVG icon if the image is missing
-  var iconHTML = c.logo 
-    ? `<img src="${c.logo}" class="app-logo-img" alt="${c.name}" onerror="this.outerHTML='<svg width=24 height=24 viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\'><path d=\\'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z\\'/></svg>'">` 
-    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
-
+  row.className = 'r';
   row.innerHTML =
-    '<div class="app-icon-wrap">' +
-       iconHTML +
+    '<div class="ch-left">' +
+      '<div class="ch-icon">' +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>' +
+      '</div>' +
+      '<div class="ch-info">' +
+        '<div class="n">' + c[0] + '</div>' +
+        '<div class="ch-sub">Camera Feed 0' + (i + 1) + '</div>' +
+      '</div>' +
     '</div>' +
-    '<div class="app-label">' + c.name + '</div>';
+    '<div class="ch-badge">HD</div>';
 
   row.onclick = function() {
     if (isGridMode) stopGridMode(i);
     else play(i);
   };
-  
-  currentContainerInner.appendChild(row);
+  box.appendChild(row);
 });
 
 startGridMode();
@@ -712,13 +569,24 @@ resetHideTimer();
 // Unified Splash Screen & Support Modal Initialization
 window.addEventListener('load', function() {
   var splash = document.getElementById('splash-screen');
+  var loadingUI = document.getElementById('splash-loading-ui');
   var enterBtn = document.getElementById('splash-enter-btn');
   var appWindow = document.getElementById('wrap');
 
+  setTimeout(function() {
+    if (loadingUI && enterBtn) {
+      loadingUI.style.opacity = '0';
+      loadingUI.style.transform = 'translateY(-15px)';
+      loadingUI.style.pointerEvents = 'none';
+      setTimeout(function() {
+        loadingUI.style.display = 'none';
+        enterBtn.classList.add('show');
+      }, 400); 
+    }
+  }, 2600);
+
   if (enterBtn) {
     enterBtn.addEventListener('click', function() {
-      isSplashActive = false; // Mark splash as finished
-      
       if (bgMusic && vid.muted) {
         bgMusic.volume = 0.25;
         bgMusic.play().catch(function() {});
@@ -743,34 +611,10 @@ window.addEventListener('load', function() {
     closeSupport.onclick = function() {
       supportModal.classList.add('hidden');
     };
-          supportModal.addEventListener('click', function(e) {
-        if (e.target === supportModal) {
-          supportModal.classList.add('hidden');
-        }
-      });
-      
-      // Copy to Clipboard Logic
-      var copyBtns = document.querySelectorAll('.copy-btn');
-      copyBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          var textToCopy = btn.getAttribute('data-copy');
-          navigator.clipboard.writeText(textToCopy).then(function() {
-            var originalHtml = btn.innerHTML;
-            // Morph into a checkmark icon
-            btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-            btn.classList.add('copied');
-            
-            // Revert back after 1.5 seconds
-            setTimeout(function() {
-              btn.innerHTML = originalHtml;
-              btn.classList.remove('copied');
-            }, 1500);
-          }).catch(function(err) {
-            console.error('Failed to copy text: ', err);
-          });
-        });
-      });
-    }
-  });
-
-})();
+    supportModal.addEventListener('click', function(e) {
+      if (e.target === supportModal) {
+        supportModal.classList.add('hidden');
+      }
+    });
+  }
+});
