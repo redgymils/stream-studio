@@ -14,6 +14,9 @@ var fsBtn = document.getElementById('fs-btn');
 var gridBtn = document.getElementById('grid-btn');
 var pipBtn = document.getElementById('pip-btn');
 var liveBtn = document.getElementById('live-btn');
+var aspectBtn = document.getElementById('aspect-btn');
+var aspectModes = ['mode-contain', 'mode-cover', 'mode-fill'];
+var currentAspectIdx = 0;
 var gridContainer = document.getElementById('grid-container');
 var vidContainer = document.getElementById('vid-container');
 var activeTitle = document.getElementById('active-channel-title');
@@ -90,6 +93,22 @@ if (pipBtn) {
       console.warn("PiP not supported or blocked by browser.");
     }
   };
+}
+
+// Aspect Ratio Toggle Logic
+if (aspectBtn) {
+aspectBtn.onclick = function() {
+if (isGridMode) return;
+vid.classList.remove(aspectModes[currentAspectIdx]);
+currentAspectIdx = (currentAspectIdx + 1) % aspectModes.length;
+vid.classList.add(aspectModes[currentAspectIdx]);
+
+// Temporarily flash the current mode on screen
+var modeNames = ['Aspect: 16:9 Fit', 'Aspect: Zoom to Fill', 'Aspect: Stretch'];
+hint.innerHTML = modeNames[currentAspectIdx];
+hint.style.display = 'flex';
+setTimeout(function() { hint.style.display = 'none'; }, 1500);
+};
 }
 
 // Jump to Live Logic
@@ -220,13 +239,20 @@ async function play(i) {
   if (!ch) return;
   cur = i;
   markRow(i);
-  if (activeTitle) activeTitle.textContent = ch[0] + ' — Live';
-  setLoad(true, ch[0]);
+  if (activeTitle) activeTitle.textContent = ch.name + ' — Live';
+  setLoad(true, ch.name);
   stopWatch();
   hint.style.display = 'none';
 
+  // Hide Multi-View if not watching PBB Studio
+  if (ch.category !== 'PBB STUDIO FEEDS') {
+    gridBtn.style.display = 'none';
+  } else {
+    gridBtn.style.display = 'flex';
+  }
+
   if (typeof shaka === 'undefined') {
-    setLoad(true, ch[0], 'Loading please wait...');
+    setLoad(true, ch.name, 'Loading please wait...');
     return;
   }
 
@@ -242,21 +268,21 @@ async function play(i) {
       manifest: { retryParameters: { maxAttempts: 5, baseDelay: 400 } }
     };
 
-    if (ch[2]) {
-      if (ch[2].startsWith('http')) {
+    if (ch.key) {
+      if (ch.key.startsWith('http')) {
         // Secure Industry Standard: Widevine / PlayReady License Server
         playerConfig.drm = {
           servers: {
-            'com.widevine.alpha': ch[2],
-            'com.microsoft.playready': ch[2]
+            'com.widevine.alpha': ch.key,
+            'com.microsoft.playready': ch.key
           },
           advanced: {
             'com.widevine.alpha': { videoRobustness: 'SW_SECURE_CRYPTO', audioRobustness: 'SW_SECURE_CRYPTO' }
           }
         };
-      } else if (ch[2].includes(':')) {
+      } else if (ch.key.includes(':')) {
         // Insecure Fallback: Plain text ClearKey
-        var parts = ch[2].split(':');
+        var parts = ch.key.split(':');
         playerConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
       }
     }
@@ -266,10 +292,10 @@ async function play(i) {
     player.addEventListener('error', function(e) {
       var code = e.detail && e.detail.code;
       if (code === 7000) return;
-      setLoad(true, ch[0], 'Error ' + code + ' — try again.');
+      setLoad(true, ch.name, 'Error ' + code + ' — try again.');
     });
 
-    await player.load(ch[1]);
+    await player.load(ch.url);
     
     // Reveal Enter button precisely when stream is ready
     if (isSplashActive) {
@@ -349,8 +375,8 @@ async function startGridMode() {
   await Promise.all(gridPlayers.map(gp => gp.destroy().catch(e => console.warn('Grid player cleanup:', e))));
   gridPlayers = [];
 
-  // Initialize and load all 4 camera feeds simultaneously
-  await Promise.all(CH.map(async function(ch, k) {
+  // Initialize and load only the first 4 camera feeds (PBB STUDIO) simultaneously
+  await Promise.all(CH.slice(0, 4).map(async function(ch, k) {
     var gvid = document.getElementById('gv' + k);
     if (!gvid) return;
 
@@ -364,16 +390,16 @@ async function startGridMode() {
       restrictions: { maxHeight: 480 }
     };
     
-    if (ch[2]) {
-      if (ch[2].startsWith('http')) {
+    if (ch.key) {
+      if (ch.key.startsWith('http')) {
         gpConfig.drm = {
           servers: {
-            'com.widevine.alpha': ch[2],
-            'com.microsoft.playready': ch[2]
+            'com.widevine.alpha': ch.key,
+            'com.microsoft.playready': ch.key
           }
         };
-      } else if (ch[2].includes(':')) {
-        var parts = ch[2].split(':');
+      } else if (ch.key.includes(':')) {
+        var parts = ch.key.split(':');
         gpConfig.drm = { clearKeys: { [parts[0]]: parts[1] } };
       }
     }
@@ -381,12 +407,12 @@ async function startGridMode() {
     gp.configure(gpConfig);
 
     try {
-      await gp.load(ch[1]);
+      await gp.load(ch.url);
       gvid.muted = true;
       await gvid.play();
     } catch(e) {
       if (e && e.name !== 'AbortError') {
-        console.error('Grid player failed to load/play:', ch[0], e);
+        console.error('Grid player failed to load/play:', ch.name, e);
       }
     }
   }));
@@ -581,28 +607,69 @@ if (sidePanel) sidePanel.addEventListener('click', stopBgMusic);
 var hudControls = document.getElementById('controls');
 if (hudControls) hudControls.addEventListener('click', stopBgMusic);
 
-// Populate Channel Sidebar
+// Populate Channel Sidebar (Premium Accordion)
 var box = document.getElementById('channels');
+var currentCategory = '';
+var currentContainerInner = null;
+
 CH.forEach(function(c, i) {
+  if (c.category !== currentCategory) {
+    // 1. Create Clickable Category Header
+    var catHeader = document.createElement('div');
+    catHeader.className = 'category-header expanded'; 
+    catHeader.innerHTML = `
+      <span>${c.category}</span>
+      <svg class="cat-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6 9 12 15 18 9"></polyline>
+      </svg>
+    `;
+    
+    // 2. Create Animated Grid Container
+    var catContainer = document.createElement('div');
+    catContainer.className = 'category-container expanded';
+    var catInner = document.createElement('div');
+    catInner.className = 'category-inner';
+    catContainer.appendChild(catInner);
+
+    // 3. Accordion Toggle Logic
+    catHeader.onclick = function() {
+      var isExpanded = catHeader.classList.contains('expanded');
+      if (isExpanded) {
+        catHeader.classList.remove('expanded');
+        catContainer.classList.remove('expanded');
+      } else {
+        catHeader.classList.add('expanded');
+        catContainer.classList.add('expanded');
+      }
+    };
+
+    box.appendChild(catHeader);
+    box.appendChild(catContainer);
+    
+    currentCategory = c.category;
+    currentContainerInner = catInner;
+  }
+
   var row = document.createElement('div');
-  row.className = 'r';
+  row.className = 'app-card'; // Upgrade to tvOS app card style
+  
+  // Clean fallback: Uses a larger SVG icon if the image is missing
+  var iconHTML = c.logo 
+    ? `<img src="${c.logo}" class="app-logo-img" alt="${c.name}" onerror="this.outerHTML='<svg width=24 height=24 viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\'><path d=\\'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z\\'/></svg>'">` 
+    : `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
+
   row.innerHTML =
-    '<div class="ch-left">' +
-      '<div class="ch-icon">' +
-        '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>' +
-      '</div>' +
-      '<div class="ch-info">' +
-        '<div class="n">' + c[0] + '</div>' +
-        '<div class="ch-sub">Camera Feed 0' + (i + 1) + '</div>' +
-      '</div>' +
+    '<div class="app-icon-wrap">' +
+       iconHTML +
     '</div>' +
-    '<div class="ch-badge">HD</div>';
+    '<div class="app-label">' + c.name + '</div>';
 
   row.onclick = function() {
     if (isGridMode) stopGridMode(i);
     else play(i);
   };
-  box.appendChild(row);
+  
+  currentContainerInner.appendChild(row);
 });
 
 startGridMode();
