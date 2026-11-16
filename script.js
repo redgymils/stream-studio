@@ -1,3 +1,19 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// 1. REPLACE THIS WITH YOUR FIREBASE CONFIG (Found in Firebase Console)
+const firebaseConfig = {
+  apiKey: "AIzaSyCZw68GgP_cro5GjzNkv2E7EsGV-PA0Ylc",
+  authDomain: "pbb-studio-89958.firebaseapp.com",
+  projectId: "pbb-studio-89958",
+  storageBucket: "pbb-studio-89958.firebasestorage.app",
+  messagingSenderId: "437305131882",
+  appId: "1:437305131882:web:fef1a73b3795d545781b13"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 var vid = document.getElementById('v');
 var stage = document.getElementById('stage');
 var load = document.getElementById('load');
@@ -207,6 +223,12 @@ async function play(i) {
   if (!ch) return;
   cur = i;
   markRow(i);
+  
+  stopBgMusic(); // FADE OUT MUSIC ON SINGLE CAM
+
+  if (activeTitle) activeTitle.textContent = ch[0] + ' — Live';
+  setLoad(true, ch[0]);
+  
   if (activeTitle) activeTitle.textContent = ch[0] + ' — Live';
   setLoad(true, ch[0]);
   stopWatch();
@@ -287,6 +309,8 @@ async function startGridMode() {
   if (activeTitle) activeTitle.textContent = 'PBB Studio — 4-Camera Multi-View';
   stopWatch();
   
+  playBgMusic(); // PLAY MUSIC IN MULTI-VIEW
+
   if (player) { try { await player.destroy(); } catch(e){} player = null; }
 
   vidContainer.style.display = 'none';
@@ -348,7 +372,8 @@ async function stopGridMode(targetIndex) {
   play(nextIdx);
 }
 
-gridBtn.onclick = function() {
+gridBtn.onclick = function(e) {
+  e.stopPropagation(); // Prevents the control panel from accidentally muting the audio
   if (!isGridMode) startGridMode();
   else stopGridMode();
 };
@@ -463,20 +488,32 @@ if (tlFs) tlFs.onclick = toggleFullScreen;
 if (tlGrid) tlGrid.onclick = function() { gridBtn.click(); };
 if (tlClose) tlClose.onclick = function() { stopGridMode(0); };
 
-// Safe Background Music Fade-Out (Clamped & Debounced)
+// Cleaned up Audio Controls
+var userHasInteracted = false; // Add this line
+
 function stopBgMusic() {
-  if (!bgMusic || bgMusic.paused || bgFadeTimer) return;
+  if (!bgMusic || bgMusic.paused) return;
+  if (bgFadeTimer) { clearInterval(bgFadeTimer); bgFadeTimer = null; }
+  
   bgFadeTimer = setInterval(function() {
     if (bgMusic.volume > 0.05) {
       bgMusic.volume = Math.max(0, +(bgMusic.volume - 0.05).toFixed(2));
     } else {
       clearInterval(bgFadeTimer);
       bgFadeTimer = null;
-      bgMusic.volume = 0;
       bgMusic.pause();
-      bgMusic.currentTime = 0;
     }
   }, 50);
+}
+
+function playBgMusic() {
+  if (!bgMusic || !userHasInteracted) return; // Prevent play if no interaction
+  if (bgFadeTimer) { clearInterval(bgFadeTimer); bgFadeTimer = null; }
+  bgMusic.volume = 0.25;
+  var playPromise = bgMusic.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(function(e) { console.log("Audio play blocked", e); });
+  }
 }
 
 hint.onclick = function() { 
@@ -500,10 +537,10 @@ vid.addEventListener('volumechange', function() {
 });
 
 var sidePanel = document.getElementById('side');
-if (sidePanel) sidePanel.addEventListener('click', stopBgMusic);
+if (sidePanel) sidePanel.addEventListener('click', function() { if (!isGridMode) stopBgMusic(); });
 
 var hudControls = document.getElementById('controls');
-if (hudControls) hudControls.addEventListener('click', stopBgMusic);
+if (hudControls) hudControls.addEventListener('click', function() { if (!isGridMode) stopBgMusic(); });
 
 // Populate Channel Sidebar
 var box = document.getElementById('channels');
@@ -587,10 +624,13 @@ window.addEventListener('load', function() {
 
   if (enterBtn) {
     enterBtn.addEventListener('click', function() {
-      if (bgMusic && vid.muted) {
-        bgMusic.volume = 0.25;
-        bgMusic.play().catch(function() {});
+      userHasInteracted = true; // Flag that the user has now clicked!
+      
+      // Force play immediately on user interaction if in multi-view
+      if (isGridMode) {
+        playBgMusic(); 
       }
+      
       splash.classList.add('hidden');
       if (appWindow) {
         setTimeout(function() { appWindow.classList.add('app-loaded'); }, 100);
@@ -618,3 +658,158 @@ window.addEventListener('load', function() {
     });
   }
 });
+
+// === REAL-TIME CHAT LOGIC WITH LOCAL STORAGE ===
+
+const chatPanel = document.getElementById("live-chat-panel");
+const chatToggleBtn = document.getElementById("chat-toggle-btn");
+const closeChatBtn = document.getElementById("close-chat-btn");
+const nameSetupUI = document.getElementById("chat-name-setup");
+const chatMessagesEl = document.getElementById("chat-messages");
+const chatInputArea = document.querySelector(".chat-input-area");
+const chatNameInput = document.getElementById("chat-name-input");
+const chatNameSave = document.getElementById("chat-name-save");
+const chatInput = document.getElementById("chat-input");
+const chatSendBtn = document.getElementById("chat-send-btn");
+
+// 1. Toggle Chat Drawer
+chatToggleBtn.addEventListener("click", () => {
+  chatPanel.classList.add("open");
+  chatToggleBtn.style.opacity = "0"; // Hide floating button when chat is open
+  chatToggleBtn.style.pointerEvents = "none";
+});
+
+closeChatBtn.addEventListener("click", () => {
+  chatPanel.classList.remove("open");
+  chatToggleBtn.style.opacity = "1"; // Show floating button when chat is closed
+  chatToggleBtn.style.pointerEvents = "auto";
+});
+
+// 2. Name Registration System (LocalStorage)
+let myChatName = localStorage.getItem("pbb_studio_name");
+
+function checkNameState() {
+  if (myChatName) {
+    nameSetupUI.style.display = "none";
+    chatMessagesEl.style.display = "flex";
+    chatInputArea.style.display = "flex";
+  } else {
+    nameSetupUI.style.display = "flex";
+    chatMessagesEl.style.display = "none";
+    chatInputArea.style.display = "none";
+  }
+}
+checkNameState(); // Run on load
+
+chatNameSave.addEventListener("click", () => {
+  const val = chatNameInput.value.trim();
+  if (val.length >= 2) {
+    myChatName = val;
+    localStorage.setItem("pbb_studio_name", myChatName); // Save to user's phone
+    checkNameState();
+  }
+});
+chatNameInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") chatNameSave.click();
+});
+
+// 3. Listen for new messages in real-time
+const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(40));
+onSnapshot(q, (snapshot) => {
+  chatMessagesEl.innerHTML = "";
+  const messages = [];
+  snapshot.forEach((doc) => messages.push(doc.data()));
+  
+  messages.reverse().forEach((msg) => {
+    // Check if the message belongs to the current user
+    const isMine = (msg.name === myChatName);
+    const alignClass = isMine ? "mine" : "others";
+    
+    const div = document.createElement("div");
+    div.className = `chat-msg-wrapper ${alignClass}`;
+    
+    div.innerHTML = `
+      <div class="chat-msg">
+        <span class="user">${escapeHTML(msg.name)}</span>
+        <span class="text">${escapeHTML(msg.text)}</span>
+      </div>
+    `;
+    
+    chatMessagesEl.appendChild(div);
+  });
+  
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+});
+
+
+// 4. Send message function
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text || !myChatName) return; // Must have name and text
+  chatInput.value = "";
+  
+  await addDoc(collection(db, "messages"), {
+    name: myChatName,
+    text: text,
+    timestamp: serverTimestamp()
+  });
+}
+
+chatSendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
+
+function escapeHTML(str) {
+  if (!str) return "";
+  return str.toString().replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])
+  );
+}
+
+// === REAL-TIME VIEWER COUNTER (PRESENCE) ===
+const viewerCountEl = document.getElementById("viewer-count-num");
+const sessionID = "session_" + Math.random().toString(36).substring(2, 10);
+const viewerDocRef = doc(db, "viewers", sessionID);
+
+// 1. Add viewer to database when they load the page
+async function registerViewer() {
+  try {
+    await setDoc(viewerDocRef, { active: true, joinedAt: serverTimestamp() });
+  } catch(e) { console.warn("Could not register viewer presence."); }
+}
+registerViewer();
+
+// 2. Remove viewer from database when they close the tab
+window.addEventListener("beforeunload", () => {
+  deleteDoc(viewerDocRef).catch(() => {});
+});
+
+// 3. Listen to the total number of active viewers
+onSnapshot(collection(db, "viewers"), (snapshot) => {
+  if (viewerCountEl) {
+    viewerCountEl.textContent = snapshot.size; // Updates the counter instantly
+  }
+});
+
+// === COPY BUTTON LOGIC ===
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const targetId = this.getAttribute('data-target');
+    const textToCopy = document.getElementById(targetId).innerText;
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      const originalHTML = this.innerHTML;
+      this.classList.add('copied');
+      // Change icon to a checkmark
+      this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+      
+      // Reset back to copy icon after 2 seconds
+      setTimeout(() => {
+        this.classList.remove('copied');
+        this.innerHTML = originalHTML;
+      }, 2000);
+    });
+  });
+});
+
