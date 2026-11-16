@@ -201,7 +201,7 @@ video {
 .vol-wrapper { display: flex; align-items: center; gap: 8px; }
 #vol-slider {
   -webkit-appearance: none; appearance: none;
-  width: 100px; height: 4px; background: rgba(255, 255, 255, 0.2);
+  width: 90px; height: 4px; background: rgba(255, 255, 255, 0.2);
   border-radius: 99px; outline: none; cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -212,7 +212,7 @@ video {
 }
 @media (max-width: 520px) {
   #controls { padding: 10px 12px; }
-  #vol-slider { width: 120px; }
+  #vol-slider { width: 90px; }
   .hide-mobile { display: none; }
   .btn-icn { height: 32px; min-width: 32px; padding: 0 6px; font-size: 11px; }
   .ctrl-group { gap: 6px; }
@@ -711,11 +711,36 @@ video {
   letter-spacing: 0.05em;
 }
 
-/* Chat Photo Attachments */
+/* Chat Photo Attachments (Thumbnails) */
 .chat-photo-attach {
-  max-width: 100%; height: auto;
-  border-radius: 8px; margin-top: 6px;
+  width: 140px; height: 140px; object-fit: cover; /* Forces a perfect square thumbnail */
+  border-radius: 12px; margin-top: 6px;
   cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.2s;
 }
+.chat-photo-attach:hover { transform: scale(1.02); }
 #chat-photo-btn:hover { color: var(--accent-blue) !important; transform: scale(1.1); }
+
+/* Smart Photo Popup Modal */
+#photo-modal {
+  position: fixed; inset: 0; z-index: 99999;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.3s ease, visibility 0.3s;
+}
+#photo-modal.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.photo-glass {
+  position: relative; max-width: 90vw; max-height: 85vh;
+  display: flex; align-items: center; justify-content: center;
+  transform: translateY(0) scale(1); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#photo-modal.hidden .photo-glass { transform: translateY(20px) scale(0.95); }
+#photo-modal-img {
+  max-width: 100%; max-height: 85vh; border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+  object-fit: contain;
+}
+#photo-modal .modal-close {
+  top: -40px; right: 0; background: rgba(255,255,255,0.1);
+}
