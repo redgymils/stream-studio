@@ -826,6 +826,10 @@ async function sendMessage() {
   });
 }
 
+chatSendBtn.addEventListener("click", sendMessage);
+chatInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") sendMessage();
+});
 
 function escapeHTML(str) {
   if (!str) return "";
