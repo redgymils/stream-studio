@@ -710,3 +710,12 @@ video {
   font-weight: 900;
   letter-spacing: 0.05em;
 }
+
+/* Chat Photo Attachments */
+.chat-photo-attach {
+  max-width: 100%; height: auto;
+  border-radius: 8px; margin-top: 6px;
+  cursor: pointer; border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+#chat-photo-btn:hover { color: var(--accent-blue) !important; transform: scale(1.1); }
