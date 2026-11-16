@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, increment, getDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
 // 1. REPLACE THIS WITH YOUR FIREBASE CONFIG (Found in Firebase Console)
@@ -685,108 +685,124 @@ const chatInput = document.getElementById("chat-input");
 const chatSendBtn = document.getElementById("chat-send-btn");
 
 // 1. Toggle Chat Drawer
-chatToggleBtn.addEventListener("click", () => {
-  chatPanel.classList.add("open");
-  chatToggleBtn.style.opacity = "0"; // Hide floating button when chat is open
-  chatToggleBtn.style.pointerEvents = "none";
-});
+if(chatToggleBtn) {
+  chatToggleBtn.addEventListener("click", () => {
+    chatPanel.classList.add("open");
+    chatToggleBtn.style.opacity = "0"; 
+    chatToggleBtn.style.pointerEvents = "none";
+  });
+}
+if(closeChatBtn) {
+  closeChatBtn.addEventListener("click", () => {
+    chatPanel.classList.remove("open");
+    chatToggleBtn.style.opacity = "1"; 
+    chatToggleBtn.style.pointerEvents = "auto";
+  });
+}
 
-closeChatBtn.addEventListener("click", () => {
-  chatPanel.classList.remove("open");
-  chatToggleBtn.style.opacity = "1"; // Show floating button when chat is closed
-  chatToggleBtn.style.pointerEvents = "auto";
-});
-
-// 2. Name Registration System (LocalStorage)
+// 2. Name Registration System
 let myChatName = localStorage.getItem("pbb_studio_name");
 
 function checkNameState() {
   if (myChatName) {
-    nameSetupUI.style.display = "none";
-    chatMessagesEl.style.display = "flex";
-    chatInputArea.style.display = "flex";
+    if(nameSetupUI) nameSetupUI.style.display = "none";
+    if(chatMessagesEl) chatMessagesEl.style.display = "flex";
+    if(chatInputArea) chatInputArea.style.display = "flex";
   } else {
-    nameSetupUI.style.display = "flex";
-    chatMessagesEl.style.display = "none";
-    chatInputArea.style.display = "none";
+    if(nameSetupUI) nameSetupUI.style.display = "flex";
+    if(chatMessagesEl) chatMessagesEl.style.display = "none";
+    if(chatInputArea) chatInputArea.style.display = "none";
   }
 }
-checkNameState(); // Run on load
+checkNameState();
 
-chatNameSave.addEventListener("click", async () => {
-  const val = chatNameInput.value.trim();
-  if (val.length < 2) return;
-  
-  const nameId = val.toLowerCase();
-  const nameRef = doc(db, "nicknames", nameId);
+if(chatNameSave) {
+  chatNameSave.addEventListener("click", async () => {
+    const val = chatNameInput.value.trim();
+    if (val.length < 2) return;
+    
+    const nameId = val.toLowerCase();
+    const nameRef = doc(db, "nicknames", nameId);
 
-  // 1. ADMIN PROTECTION: Require passcode for PSYCHO PATTERN
-  if (nameId === "psycho pattern") {
-    const pass = prompt("Enter Admin Passcode:");
-    if (pass !== "pbbadmin") { // <-- Change this password to whatever you want!
-      alert("Imposter detected! Incorrect admin passcode.");
-      return;
-    }
-    // Admin passed: Log them in and secure the name
-    myChatName = val;
-    localStorage.setItem("pbb_studio_name", myChatName);
-    await setDoc(nameRef, { claimedAt: serverTimestamp() });
-    checkNameState();
-    return;
-  }
-
-  // 2. REGULAR USERS: Check if name is already taken globally
-  chatNameSave.textContent = "Checking...";
-  chatNameSave.disabled = true;
-
-  try {
-    const nameSnap = await getDoc(nameRef);
-    if (nameSnap.exists()) {
-      alert("This nickname is already taken globally! Please choose another one.");
-    } else {
-      // Claim the name in Firebase
-      await setDoc(nameRef, { claimedAt: serverTimestamp() });
+    // ADMIN PROTECTION
+    if (nameId === "psycho pattern") {
+      const pass = prompt("Enter Admin Passcode:");
+      if (pass !== "Email@3212020") {
+        alert("Imposter detected! Incorrect admin passcode.");
+        return;
+      }
       myChatName = val;
       localStorage.setItem("pbb_studio_name", myChatName);
+      await setDoc(nameRef, { claimedAt: serverTimestamp() });
       checkNameState();
+      return;
     }
-  } catch(e) {
-    alert("Error connecting to studio.");
-  }
-  
-  chatNameSave.textContent = "Start Chatting";
-  chatNameSave.disabled = false;
-});
-chatNameInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") chatNameSave.click();
-});
+
+    chatNameSave.textContent = "Checking...";
+    chatNameSave.disabled = true;
+
+    try {
+      const nameSnap = await getDoc(nameRef);
+      if (nameSnap.exists()) {
+        alert("This nickname is already taken globally! Please choose another one.");
+      } else {
+        await setDoc(nameRef, { claimedAt: serverTimestamp() });
+        myChatName = val;
+        localStorage.setItem("pbb_studio_name", myChatName);
+        checkNameState();
+      }
+    } catch(e) {
+      alert("Error connecting to studio.");
+    }
+    
+    chatNameSave.textContent = "Start Chatting";
+    chatNameSave.disabled = false;
+  });
+}
+if(chatNameInput) {
+  chatNameInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") chatNameSave.click();
+  });
+}
 
 // 3. Listen for new messages in real-time
 const q = query(collection(db, "messages"), orderBy("timestamp", "desc"), limit(40));
 onSnapshot(q, (snapshot) => {
+  if(!chatMessagesEl) return;
   chatMessagesEl.innerHTML = "";
   const messages = [];
   snapshot.forEach((doc) => messages.push(doc.data()));
   
   messages.reverse().forEach((msg) => {
-    // Check if the message belongs to the current user
-    const isMine = (msg.name === myChatName);
+    const safeName = msg.name || "Guest"; // Safely handles old ghost messages
+    const isMine = (safeName === myChatName);
     const alignClass = isMine ? "mine" : "others";
     
     const div = document.createElement("div");
     div.className = `chat-msg-wrapper ${alignClass}`;
     
-    // Check if the sender is the Admin
-    const isAdmin = msg.name.toUpperCase() === "PSYCHO PATTERN";
+    const isAdmin = safeName.toUpperCase() === "PSYCHO PATTERN";
     const userClass = isAdmin ? "user admin-glow" : "user";
     const crownIcon = isAdmin ? "👑 " : "";
     
     div.innerHTML = `
       <div class="chat-msg">
-        <span class="${userClass}">${crownIcon}${escapeHTML(msg.name)}</span>
+        <span class="${userClass}">${crownIcon}${escapeHTML(safeName)}</span>
         <span class="text">${escapeHTML(msg.text)}</span>
       </div>
     `;
+    
+    if (myChatName && myChatName.toUpperCase() === "PSYCHO PATTERN" && !isAdmin) {
+      const nameSpan = div.querySelector('.user');
+      if(nameSpan) {
+        nameSpan.style.cursor = "pointer";
+        nameSpan.title = "Ban User & Delete All Messages";
+        nameSpan.style.transition = "color 0.2s";
+        nameSpan.onmouseover = () => nameSpan.style.color = "#ff375f";
+        nameSpan.onmouseout = () => nameSpan.style.color = "var(--accent-blue)";
+        nameSpan.onclick = () => banUserAndClear(safeName);
+      }
+    }
     
     chatMessagesEl.appendChild(div);
   });
@@ -794,31 +810,28 @@ onSnapshot(q, (snapshot) => {
   chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
 });
 
-
-// 4. Send message function (With Anti-Spam)
+// 4. Send message function (With Anti-Spam & Ban Check)
 let lastMessageText = "";
 let sameMessageCount = 0;
 
 async function sendMessage() {
+  if (localStorage.getItem("pbb_studio_banned") === "true") return; 
   const text = chatInput.value.trim();
   if (!text || !myChatName) return; 
   
-  // Anti-Spam Check: Ignore capitalization when comparing
   if (text.toLowerCase() === lastMessageText.toLowerCase()) {
     if (sameMessageCount >= 3) {
       alert("You can only send the same message 3 times to prevent spamming.");
-      return; // Stop the function from sending the message
+      return; 
     }
     sameMessageCount++;
   } else {
-    // If it is a brand new message, reset the tracker
     lastMessageText = text;
     sameMessageCount = 1;
   }
   
   chatInput.value = "";
   
-  // Send message to Firebase Database
   await addDoc(collection(db, "messages"), {
     name: myChatName,
     text: text,
@@ -826,10 +839,47 @@ async function sendMessage() {
   });
 }
 
-chatSendBtn.addEventListener("click", sendMessage);
-chatInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
+if(chatSendBtn) chatSendBtn.addEventListener("click", sendMessage);
+if(chatInput) {
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+}
+
+// === ADMIN MODERATION LOGIC ===
+async function banUserAndClear(targetName) {
+  if (!confirm(`🚨 BAN WARNING 🚨\nAre you sure you want to permanently BAN "${targetName}" and DELETE all their messages?`)) return;
+
+  await setDoc(doc(db, "banned", targetName.toLowerCase()), { bannedAt: serverTimestamp() });
+
+  const qBan = query(collection(db, "messages"), where("name", "==", targetName));
+  const snap = await getDocs(qBan);
+  snap.forEach(d => {
+    deleteDoc(doc(db, "messages", d.id));
+  });
+
+  alert(`✅ "${targetName}" has been banned and their messages cleared.`);
+}
+
+onSnapshot(collection(db, "banned"), (snapshot) => {
+  snapshot.forEach((docSnap) => {
+    if (myChatName && docSnap.id === myChatName.toLowerCase()) {
+      localStorage.setItem("pbb_studio_banned", "true");
+      enforceBanUI();
+    }
+  });
 });
+
+function enforceBanUI() {
+  const chatInputContainer = document.querySelector(".chat-input-area");
+  if (chatInputContainer) {
+    chatInputContainer.innerHTML = `<div style="color:#ff375f; font-size:12px; font-weight:700; width:100%; text-align:center; padding:10px; letter-spacing:0.05em;">🚨 YOU HAVE BEEN BANNED 🚨</div>`;
+  }
+}
+
+if (localStorage.getItem("pbb_studio_banned") === "true") {
+  setTimeout(enforceBanUI, 500);
+}
 
 function escapeHTML(str) {
   if (!str) return "";
@@ -843,23 +893,20 @@ const viewerCountEl = document.getElementById("viewer-count-num");
 const sessionID = "session_" + Math.random().toString(36).substring(2, 10);
 const viewerDocRef = doc(db, "viewers", sessionID);
 
-// 1. Add viewer to database when they load the page
 async function registerViewer() {
   try {
     await setDoc(viewerDocRef, { active: true, joinedAt: serverTimestamp() });
-  } catch(e) { console.warn("Could not register viewer presence."); }
+  } catch(e) { }
 }
 registerViewer();
 
-// 2. Remove viewer from database when they close the tab
 window.addEventListener("beforeunload", () => {
   deleteDoc(viewerDocRef).catch(() => {});
 });
 
-// 3. Listen to the total number of active viewers
 onSnapshot(collection(db, "viewers"), (snapshot) => {
   if (viewerCountEl) {
-    viewerCountEl.textContent = snapshot.size; // Updates the counter instantly
+    viewerCountEl.textContent = snapshot.size; 
   }
 });
 
@@ -872,10 +919,8 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
     navigator.clipboard.writeText(textToCopy).then(() => {
       const originalHTML = this.innerHTML;
       this.classList.add('copied');
-      // Change icon to a checkmark
       this.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
       
-      // Reset back to copy icon after 2 seconds
       setTimeout(() => {
         this.classList.remove('copied');
         this.innerHTML = originalHTML;
@@ -889,10 +934,9 @@ const pollModal = document.getElementById("poll-modal");
 const voteBtn = document.getElementById("vote-btn");
 const closePollBtn = document.getElementById("close-poll");
 const pollListEl = document.getElementById("poll-list");
-const currentPollWeek = "week2"; // Change to "week3", "week4", etc., to reset everything!
+const currentPollWeek = "week2"; 
 const pollDocRef = doc(db, "polls", currentPollWeek);
 
-// 1. Open and Close Modal
 if (voteBtn && pollModal) {
   voteBtn.addEventListener("click", () => pollModal.classList.remove("hidden"));
   closePollBtn.addEventListener("click", () => pollModal.classList.add("hidden"));
@@ -901,7 +945,6 @@ if (voteBtn && pollModal) {
   });
 }
 
-// 2. Dynamically Generate Nominee UI from nominated.js
 if (pollListEl && typeof NOMINATED !== 'undefined') {
   pollListEl.innerHTML = "";
   NOMINATED.forEach(hm => {
@@ -932,13 +975,11 @@ if (pollListEl && typeof NOMINATED !== 'undefined') {
   });
 }
 
-// 3. Ensure the poll document exists in Firebase for current nominees
 async function initPoll() {
   try {
     const snap = await getDoc(pollDocRef);
     if (!snap.exists()) {
       let initialData = {};
-      // Automatically creates a 0-vote baseline for however many nominees exist
       if (typeof NOMINATED !== 'undefined') {
         NOMINATED.forEach(hm => {
           initialData[hm.id] = { save: 0, evict: 0 };
@@ -946,11 +987,10 @@ async function initPoll() {
       }
       await setDoc(pollDocRef, initialData);
     }
-  } catch(e) { console.warn("Poll init failed."); }
+  } catch(e) { }
 }
 initPoll();
 
-// 4. Enforce Vote Limits & Contradiction Rules
 function updatePollUI() {
   const savedHmId = localStorage.getItem("pbb_save_" + currentPollWeek);
   const evictedHmId = localStorage.getItem("pbb_evict_" + currentPollWeek);
@@ -960,14 +1000,12 @@ function updatePollUI() {
     const saveBtn = card.querySelector(".save-btn");
     const evictBtn = card.querySelector(".evict-btn");
     
-    // SAVE: Hide if 1 Save vote used overall OR if they already Evicted THIS person.
     if (savedHmId || evictedHmId === hmId) {
       if (saveBtn) saveBtn.style.display = "none";
     } else {
       if (saveBtn) saveBtn.style.display = "block";
     }
     
-    // EVICT: Hide if 1 Evict vote used overall OR if they already Saved THIS person.
     if (evictedHmId || savedHmId === hmId) {
       if (evictBtn) evictBtn.style.display = "none";
     } else {
@@ -977,7 +1015,6 @@ function updatePollUI() {
 }
 updatePollUI();
 
-// 5. Handle Click to Vote
 document.querySelectorAll(".vote-btn").forEach(btn => {
   btn.addEventListener("click", async function() {
     const hmId = this.closest(".hm-card").getAttribute("data-id");
@@ -994,7 +1031,6 @@ document.querySelectorAll(".vote-btn").forEach(btn => {
   });
 });
 
-// 6. Real-Time Graph Listener
 onSnapshot(pollDocRef, (docSnap) => {
   if(!docSnap.exists()) return;
   const data = docSnap.data();
@@ -1013,11 +1049,15 @@ onSnapshot(pollDocRef, (docSnap) => {
       const savePct = totalVotes > 0 ? ((hmSaves / totalVotes) * 100).toFixed(1) : 0;
       const evictPct = totalVotes > 0 ? ((hmEvicts / totalVotes) * 100).toFixed(1) : 0;
       
-      card.querySelector(".bg-save").style.width = `${savePct}%`;
-      card.querySelector(".pct-save").textContent = `${savePct}%`;
+      const bgSave = card.querySelector(".bg-save");
+      const pctSave = card.querySelector(".pct-save");
+      if(bgSave) bgSave.style.width = `${savePct}%`;
+      if(pctSave) pctSave.textContent = `${savePct}%`;
       
-      card.querySelector(".bg-evict").style.width = `${evictPct}%`;
-      card.querySelector(".pct-evict").textContent = `${evictPct}%`;
+      const bgEvict = card.querySelector(".bg-evict");
+      const pctEvict = card.querySelector(".pct-evict");
+      if(bgEvict) bgEvict.style.width = `${evictPct}%`;
+      if(pctEvict) pctEvict.textContent = `${evictPct}%`;
     }
   });
 });
