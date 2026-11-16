@@ -680,3 +680,11 @@ video {
 .bg-save { background: #32d74b; box-shadow: 0 0 8px rgba(50,215,75,0.6); }
 .bg-evict { background: #ff375f; box-shadow: 0 0 8px rgba(255,55,95,0.6); }
 .bar-pct { width: 28px; text-align: right; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* Admin Glowing Name */
+.chat-msg .user.admin-glow {
+  color: #00f0ff !important;
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 16px rgba(0, 240, 255, 0.4);
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
