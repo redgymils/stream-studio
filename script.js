@@ -743,12 +743,30 @@ onSnapshot(q, (snapshot) => {
 });
 
 
-// 4. Send message function
+// 4. Send message function (With Anti-Spam)
+let lastMessageText = "";
+let sameMessageCount = 0;
+
 async function sendMessage() {
   const text = chatInput.value.trim();
-  if (!text || !myChatName) return; // Must have name and text
+  if (!text || !myChatName) return; 
+  
+  // Anti-Spam Check: Ignore capitalization when comparing
+  if (text.toLowerCase() === lastMessageText.toLowerCase()) {
+    if (sameMessageCount >= 3) {
+      alert("You can only send the same message 3 times to prevent spamming.");
+      return; // Stop the function from sending the message
+    }
+    sameMessageCount++;
+  } else {
+    // If it is a brand new message, reset the tracker
+    lastMessageText = text;
+    sameMessageCount = 1;
+  }
+  
   chatInput.value = "";
   
+  // Send message to Firebase Database
   await addDoc(collection(db, "messages"), {
     name: myChatName,
     text: text,
@@ -756,10 +774,6 @@ async function sendMessage() {
   });
 }
 
-chatSendBtn.addEventListener("click", sendMessage);
-chatInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
-});
 
 function escapeHTML(str) {
   if (!str) return "";
