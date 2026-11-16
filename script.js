@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, serverTimestamp, doc, setDoc, deleteDoc, updateDoc, increment, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 
 // 1. REPLACE THIS WITH YOUR FIREBASE CONFIG (Found in Firebase Console)
 const firebaseConfig = {
@@ -509,7 +510,7 @@ function stopBgMusic() {
 function playBgMusic() {
   if (!bgMusic || !userHasInteracted) return; // Prevent play if no interaction
   if (bgFadeTimer) { clearInterval(bgFadeTimer); bgFadeTimer = null; }
-  bgMusic.volume = 0.25;
+  bgMusic.volume = 0.05;
   var playPromise = bgMusic.play();
   if (playPromise !== undefined) {
     playPromise.catch(function(e) { console.log("Audio play blocked", e); });
@@ -813,3 +814,140 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
   });
 });
 
+// === WEEKLY EVICTION POLL LOGIC ===
+const pollModal = document.getElementById("poll-modal");
+const voteBtn = document.getElementById("vote-btn");
+const closePollBtn = document.getElementById("close-poll");
+const pollListEl = document.getElementById("poll-list");
+const currentPollWeek = "week2"; // Change to "week3", "week4", etc., to reset everything!
+const pollDocRef = doc(db, "polls", currentPollWeek);
+
+// 1. Open and Close Modal
+if (voteBtn && pollModal) {
+  voteBtn.addEventListener("click", () => pollModal.classList.remove("hidden"));
+  closePollBtn.addEventListener("click", () => pollModal.classList.add("hidden"));
+  pollModal.addEventListener("click", (e) => {
+    if (e.target === pollModal) pollModal.classList.add("hidden");
+  });
+}
+
+// 2. Dynamically Generate Nominee UI from nominated.js
+if (pollListEl && typeof NOMINATED !== 'undefined') {
+  pollListEl.innerHTML = "";
+  NOMINATED.forEach(hm => {
+    pollListEl.innerHTML += `
+      <div class="hm-card" data-id="${hm.id}">
+        <img src="${hm.photo}" alt="${hm.name}" class="hm-photo">
+        <div class="hm-info">
+          <div class="hm-name">${hm.name}</div>
+          <div class="vote-actions">
+            <button class="vote-btn save-btn" data-type="save">SAVE</button>
+            <button class="vote-btn evict-btn" data-type="evict">EVICT</button>
+          </div>
+          <div class="vote-results">
+            <div class="bar-row">
+              <div class="bar-label">SAVE</div>
+              <div class="bar-track"><div class="bar-fill bg-save" style="width: 0%"></div></div>
+              <div class="bar-pct pct-save">0%</div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label">EVICT</div>
+              <div class="bar-track"><div class="bar-fill bg-evict" style="width: 0%"></div></div>
+              <div class="bar-pct pct-evict">0%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// 3. Ensure the poll document exists in Firebase for current nominees
+async function initPoll() {
+  try {
+    const snap = await getDoc(pollDocRef);
+    if (!snap.exists()) {
+      let initialData = {};
+      // Automatically creates a 0-vote baseline for however many nominees exist
+      if (typeof NOMINATED !== 'undefined') {
+        NOMINATED.forEach(hm => {
+          initialData[hm.id] = { save: 0, evict: 0 };
+        });
+      }
+      await setDoc(pollDocRef, initialData);
+    }
+  } catch(e) { console.warn("Poll init failed."); }
+}
+initPoll();
+
+// 4. Enforce Vote Limits & Contradiction Rules
+function updatePollUI() {
+  const savedHmId = localStorage.getItem("pbb_save_" + currentPollWeek);
+  const evictedHmId = localStorage.getItem("pbb_evict_" + currentPollWeek);
+  
+  document.querySelectorAll(".hm-card").forEach(card => {
+    const hmId = card.getAttribute("data-id");
+    const saveBtn = card.querySelector(".save-btn");
+    const evictBtn = card.querySelector(".evict-btn");
+    
+    // SAVE: Hide if 1 Save vote used overall OR if they already Evicted THIS person.
+    if (savedHmId || evictedHmId === hmId) {
+      if (saveBtn) saveBtn.style.display = "none";
+    } else {
+      if (saveBtn) saveBtn.style.display = "block";
+    }
+    
+    // EVICT: Hide if 1 Evict vote used overall OR if they already Saved THIS person.
+    if (evictedHmId || savedHmId === hmId) {
+      if (evictBtn) evictBtn.style.display = "none";
+    } else {
+      if (evictBtn) evictBtn.style.display = "block";
+    }
+  });
+}
+updatePollUI();
+
+// 5. Handle Click to Vote
+document.querySelectorAll(".vote-btn").forEach(btn => {
+  btn.addEventListener("click", async function() {
+    const hmId = this.closest(".hm-card").getAttribute("data-id");
+    const type = this.getAttribute("data-type"); 
+    
+    if (type === "save") localStorage.setItem("pbb_save_" + currentPollWeek, hmId);
+    if (type === "evict") localStorage.setItem("pbb_evict_" + currentPollWeek, hmId);
+    
+    updatePollUI(); 
+    
+    await updateDoc(pollDocRef, {
+      [`${hmId}.${type}`]: increment(1)
+    });
+  });
+});
+
+// 6. Real-Time Graph Listener
+onSnapshot(pollDocRef, (docSnap) => {
+  if(!docSnap.exists()) return;
+  const data = docSnap.data();
+  
+  let totalVotes = 0;
+  Object.keys(data).forEach(key => {
+    totalVotes += (data[key].save || 0) + (data[key].evict || 0);
+  });
+  
+  document.querySelectorAll(".hm-card").forEach(card => {
+    const id = card.getAttribute("data-id");
+    if(data[id]) {
+      const hmSaves = data[id].save || 0;
+      const hmEvicts = data[id].evict || 0;
+      
+      const savePct = totalVotes > 0 ? ((hmSaves / totalVotes) * 100).toFixed(1) : 0;
+      const evictPct = totalVotes > 0 ? ((hmEvicts / totalVotes) * 100).toFixed(1) : 0;
+      
+      card.querySelector(".bg-save").style.width = `${savePct}%`;
+      card.querySelector(".pct-save").textContent = `${savePct}%`;
+      
+      card.querySelector(".bg-evict").style.width = `${evictPct}%`;
+      card.querySelector(".pct-evict").textContent = `${evictPct}%`;
+    }
+  });
+});
