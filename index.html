@@ -226,12 +226,27 @@
       <button id="close-poll" class="modal-close">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-      <div class="poll-header">
+            <div class="poll-header">
         <h3 class="support-title">Weekly Eviction Poll</h3>
         <p class="support-desc">You have <b style="color:#32d74b">1 Save</b> and <b style="color:#ff375f">1 Evict</b> vote.</p>
       </div>
       
-            <div id="poll-list">
+      <!-- NEW LEADERBOARD PANEL -->
+      <div class="poll-leaders hidden" id="poll-leaders">
+        <div class="leader-card save-leader">
+          <div class="leader-title">🏆 TOP SAVE</div>
+          <img src="" id="top-save-img" class="leader-photo">
+          <div class="leader-name" id="top-save-name">-</div>
+        </div>
+        <div class="leader-card evict-leader">
+          <div class="leader-title">⚠️ TOP EVICT</div>
+          <img src="" id="top-evict-img" class="leader-photo">
+          <div class="leader-name" id="top-evict-name">-</div>
+        </div>
+      </div>
+
+      <div id="poll-list">
+
         <!-- Housemates will be dynamically generated here by script_3.js -->
       </div>
     </div>
