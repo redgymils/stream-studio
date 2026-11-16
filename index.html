@@ -208,7 +208,15 @@
           <!-- Messages load here -->
         </div>
         
-        <div class="chat-input-area" style="display: none;">
+        <!-- Smart Reply Preview Box -->
+        <div id="chat-reply-preview" style="display: none; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 12px 12px 0 0; font-size: 11px; color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: -10px; z-index: 1; align-items: center; justify-content: space-between; backdrop-filter: blur(10px);">
+          <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">
+            Replying to <b id="reply-preview-name" style="color: var(--accent-blue);"></b>: <span id="reply-preview-text"></span>
+          </div>
+          <button onclick="cancelReply()" style="background: none; border: none; color: #fff; cursor: pointer; font-weight: bold; padding: 0 4px; transition: 0.2s;">✕</button>
+        </div>
+
+        <div class="chat-input-area" style="display: none; position: relative; z-index: 2;">
           <!-- Hidden File Input & Photo Button -->
           <input type="file" id="chat-photo-input" accept="image/*" style="display: none;">
           <button id="chat-photo-btn" title="Send Photo" style="background: transparent; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 0 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
@@ -306,9 +314,9 @@
   </div>
 
     <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
-  <script src="data.js?v=2.1"></script>
-  <script src="nominated.js?v=2.1"></script>
-  <script type="module" src="script.js?v=2.1"></script>
+  <script src="data.js?v=2.2"></script>
+  <script src="nominated.js?v=2.2"></script>
+  <script type="module" src="script.js?v=2.2"></script>
 </body>
 
   
