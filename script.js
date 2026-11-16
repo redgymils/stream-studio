@@ -242,6 +242,12 @@ async function play(i) {
 
   try {
     shaka.polyfill.installAll();
+    
+    if (!shaka.Player.isBrowserSupported()) {
+      setLoad(true, ch[0], 'Apple iOS does not support this stream format.');
+      return;
+    }
+
     if (player) { try { await player.destroy(); } catch(e){} player = null; }
 
     player = new shaka.Player();
@@ -320,9 +326,14 @@ async function startGridMode() {
   liveBtn.style.display = 'none';
   setLoad(true, "All Channels", "Loading 4-Camera Studio...");
 
-  if (typeof shaka !== 'undefined') shaka.polyfill.installAll();
-  
-  
+  if (typeof shaka !== 'undefined') {
+    shaka.polyfill.installAll();
+    
+    if (!shaka.Player.isBrowserSupported()) {
+      setLoad(true, "Error", "Apple iOS does not support this stream format.");
+      return;
+    }
+  }
 
   // Destroy any existing grid players in parallel
   await Promise.all(gridPlayers.map(gp => gp.destroy().catch(() => {})));
@@ -497,7 +508,7 @@ function stopBgMusic() {
   if (bgFadeTimer) { clearInterval(bgFadeTimer); bgFadeTimer = null; }
   
   bgFadeTimer = setInterval(function() {
-    if (bgMusic.volume > 0.05) {
+    if (bgMusic.volume > 0.01) {
       bgMusic.volume = Math.max(0, +(bgMusic.volume - 0.05).toFixed(2));
     } else {
       clearInterval(bgFadeTimer);
