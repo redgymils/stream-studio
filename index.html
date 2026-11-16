@@ -150,6 +150,10 @@
         <div class="sidebar-header">
           <div id="title">CAMERA FEEDS</div>
           <div class="header-badges">
+            <button id="vote-btn" class="support-badge" style="background: rgba(10, 132, 255, 0.15); border-color: rgba(10, 132, 255, 0.3); color: var(--accent-blue);" title="Weekly Poll">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 9h-2V7h-2v5H6v-2H4v6h16v-6h-2v2h-2v-5h-2v5z"/></svg>
+              VOTE
+            </button>
             <button id="donate-btn" class="support-badge" title="Support the Stream">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
               SUPPORT
@@ -212,7 +216,23 @@
       
     </div> <!-- Properly closed .mac-content -->
   </div> <!-- Properly closed #wrap.mac-window -->
+  
+    <!-- Premium Glass Poll Modal -->
+  <div id="poll-modal" class="hidden">
+    <div class="poll-glass">
+      <button id="close-poll" class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="poll-header">
+        <h3 class="support-title">Weekly Eviction Poll</h3>
+        <p class="support-desc">You have <b style="color:#32d74b">1 Save</b> and <b style="color:#ff375f">1 Evict</b> vote.</p>
+      </div>
+      
+            <div id="poll-list">
+        <!-- Housemates will be dynamically generated here by script_3.js -->
+      </div>
 
+        
   <!-- Premium Glass Support Modal (Now sits cleanly at root body level) -->
   <div id="support-modal" class="hidden">
     <div class="support-glass">
@@ -250,9 +270,12 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
   <script src="data.js"></script>
+  <script src="nominated.js"></script>
   <script type="module" src="script.js"></script>
+</body>
+
   
   <audio id="bg-music" loop preload="auto">
     <source src="pinoy_ako.mp3" type="audio/mpeg">
