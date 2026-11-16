@@ -18,7 +18,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.0">
 </head>
 <body>
   <!-- Ambient macOS Wallpaper Orbs -->
@@ -209,6 +209,12 @@
         </div>
         
         <div class="chat-input-area" style="display: none;">
+          <!-- Hidden File Input & Photo Button -->
+          <input type="file" id="chat-photo-input" accept="image/*" style="display: none;">
+          <button id="chat-photo-btn" title="Send Photo" style="background: transparent; border: none; color: rgba(255,255,255,0.5); cursor: pointer; padding: 0 8px; display: flex; align-items: center; justify-content: center; transition: 0.2s;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          </button>
+          
           <input type="text" id="chat-input" placeholder="Say something..." autocomplete="off" maxlength="100">
           <button id="chat-send-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -290,9 +296,9 @@
   </div>
 
     <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
-  <script src="data.js"></script>
-  <script src="nominated.js"></script>
-  <script type="module" src="script.js"></script>
+  <script src="data.js?v=2.0"></script>
+  <script src="nominated.js?v=2.0"></script>
+  <script type="module" src="script.js?v=2.0"></script>
 </body>
 
   
