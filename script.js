@@ -713,13 +713,49 @@ function checkNameState() {
 }
 checkNameState(); // Run on load
 
-chatNameSave.addEventListener("click", () => {
+chatNameSave.addEventListener("click", async () => {
   const val = chatNameInput.value.trim();
-  if (val.length >= 2) {
+  if (val.length < 2) return;
+  
+  const nameId = val.toLowerCase();
+  const nameRef = doc(db, "nicknames", nameId);
+
+  // 1. ADMIN PROTECTION: Require passcode for PSYCHO PATTERN
+  if (nameId === "psycho pattern") {
+    const pass = prompt("Enter Admin Passcode:");
+    if (pass !== "pbbadmin") { // <-- Change this password to whatever you want!
+      alert("Imposter detected! Incorrect admin passcode.");
+      return;
+    }
+    // Admin passed: Log them in and secure the name
     myChatName = val;
-    localStorage.setItem("pbb_studio_name", myChatName); // Save to user's phone
+    localStorage.setItem("pbb_studio_name", myChatName);
+    await setDoc(nameRef, { claimedAt: serverTimestamp() });
     checkNameState();
+    return;
   }
+
+  // 2. REGULAR USERS: Check if name is already taken globally
+  chatNameSave.textContent = "Checking...";
+  chatNameSave.disabled = true;
+
+  try {
+    const nameSnap = await getDoc(nameRef);
+    if (nameSnap.exists()) {
+      alert("This nickname is already taken globally! Please choose another one.");
+    } else {
+      // Claim the name in Firebase
+      await setDoc(nameRef, { claimedAt: serverTimestamp() });
+      myChatName = val;
+      localStorage.setItem("pbb_studio_name", myChatName);
+      checkNameState();
+    }
+  } catch(e) {
+    alert("Error connecting to studio.");
+  }
+  
+  chatNameSave.textContent = "Start Chatting";
+  chatNameSave.disabled = false;
 });
 chatNameInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") chatNameSave.click();
@@ -740,9 +776,14 @@ onSnapshot(q, (snapshot) => {
     const div = document.createElement("div");
     div.className = `chat-msg-wrapper ${alignClass}`;
     
+    // Check if the sender is the Admin
+    const isAdmin = msg.name.toUpperCase() === "PSYCHO PATTERN";
+    const userClass = isAdmin ? "user admin-glow" : "user";
+    const crownIcon = isAdmin ? "👑 " : "";
+    
     div.innerHTML = `
       <div class="chat-msg">
-        <span class="user">${escapeHTML(msg.name)}</span>
+        <span class="${userClass}">${crownIcon}${escapeHTML(msg.name)}</span>
         <span class="text">${escapeHTML(msg.text)}</span>
       </div>
     `;
