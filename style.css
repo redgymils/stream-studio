@@ -128,7 +128,7 @@ video {
 /* === POLISHED HUD CONTROLS === */
 #controls {
   position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-  width: calc(100% - 32px); max-width: 480px;
+  width: calc(100% - 32px); max-width: 560px; /* Widened to perfectly fit all buttons and the long slider */
   background: rgba(20, 20, 25, 0.65);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
@@ -189,19 +189,19 @@ video {
 
 .btn-icn {
   background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff; cursor: pointer; height: 34px; min-width: 34px; padding: 0 10px;
+  color: #fff; cursor: pointer; height: 36px; min-width: 36px; padding: 0 10px;
   border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-size: 12px; font-weight: 600; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  font-size: 11.5px; font-weight: 600; transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 }
 .btn-icn:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
 .btn-icn:active { transform: scale(0.92); }
 .btn-icn.active-mode { background: rgba(10, 132, 255, 0.2); border-color: rgba(10, 132, 255, 0.6); color: #fff; box-shadow: 0 0 16px rgba(10, 132, 255, 0.4); }
 
 /* Volume Slider */
-.vol-wrapper { display: flex; align-items: center; gap: 6px; }
+.vol-wrapper { display: flex; align-items: center; gap: 8px; }
 #vol-slider {
   -webkit-appearance: none; appearance: none;
-  width: 65px; height: 4px; background: rgba(255, 255, 255, 0.2);
+  width: 100px; height: 4px; background: rgba(255, 255, 255, 0.2);
   border-radius: 99px; outline: none; cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -210,10 +210,12 @@ video {
   width: 12px; height: 12px; border-radius: 50%;
   background: #fff; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
-@media (max-width: 440px) {
-  #vol-slider { width: 40px; }
+@media (max-width: 520px) {
+  #controls { padding: 10px 12px; }
+  #vol-slider { width: 120px; }
   .hide-mobile { display: none; }
-  .btn-icn { min-width: 30px; padding: 0 8px; }
+  .btn-icn { height: 32px; min-width: 32px; padding: 0 6px; font-size: 11px; }
+  .ctrl-group { gap: 6px; }
 }
 
 /* === SIDEBAR & CARDS === */
@@ -679,7 +681,27 @@ video {
 .bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
 .bg-save { background: #32d74b; box-shadow: 0 0 8px rgba(50,215,75,0.6); }
 .bg-evict { background: #ff375f; box-shadow: 0 0 8px rgba(255,55,95,0.6); }
-.bar-pct { width: 28px; text-align: right; color: #fff; font-variant-numeric: tabular-nums; }
+.bar-pct { min-width: 60px; text-align: right; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Leaderboard Panel */
+.poll-leaders {
+  display: flex; gap: 12px; margin-bottom: 16px;
+}
+.poll-leaders.hidden { display: none !important; }
+.leader-card {
+  flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px; padding: 12px; display: flex; flex-direction: column; align-items: center;
+  text-align: center; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+}
+.save-leader { background: linear-gradient(180deg, rgba(50, 215, 75, 0.1) 0%, rgba(0,0,0,0.3) 100%); border-color: rgba(50, 215, 75, 0.3); }
+.evict-leader { background: linear-gradient(180deg, rgba(255, 55, 95, 0.1) 0%, rgba(0,0,0,0.3) 100%); border-color: rgba(255, 55, 95, 0.3); }
+.leader-title { font-size: 9px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 8px; }
+.save-leader .leader-title { color: #32d74b; }
+.evict-leader .leader-title { color: #ff375f; }
+.leader-photo { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 6px; border: 2px solid rgba(255,255,255,0.1); }
+.save-leader .leader-photo { border-color: #32d74b; box-shadow: 0 0 12px rgba(50, 215, 75, 0.4); }
+.evict-leader .leader-photo { border-color: #ff375f; box-shadow: 0 0 12px rgba(255, 55, 95, 0.4); }
+.leader-name { font-size: 11px; font-weight: 700; color: #fff; letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 /* Admin Glowing Name */
 .chat-msg .user.admin-glow {
