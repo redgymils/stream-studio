@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>PBB STREAM ONLINE</title>
+
+  <!-- Preconnect to Proxy & CDN for faster startup -->
+  <link rel="preconnect" href="https://pbb-proxy.redgymils.workers.dev" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+
+  <link rel="stylesheet" href="style.css?v=3.2">
+</head>
+<body>
+  <!-- Ambient macOS Wallpaper Orbs -->
+  <div class="ambient-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- Ultra-Minimalist Splash Screen -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <div class="brand-logo-wrapper">
+        <img src="pbbstreamonline.png" alt="PBB Stream Online" class="brand-logo">
+      </div>
+
+      <div id="splash-loading-ui">
+        <div class="splash-text">INITIALIZING STUDIO</div>
+        <div class="splash-loader"><div class="splash-progress"></div></div>
+      </div>
+
+      <button id="splash-enter-btn">ENTER STUDIO</button>
+    </div>
+  </div>
+
+  <!-- Main macOS Window -->
+  <div id="wrap" class="mac-window">
+    <!-- macOS Window Titlebar -->
+    <div class="mac-titlebar">
+      <div class="traffic-lights">
+        <span class="light close" title="Reset Player" id="tl-close"></span>
+        <span class="light minimize" title="4-Grid View" id="tl-grid"></span>
+        <span class="light maximize" title="Full Screen" id="tl-fs"></span>
+      </div>
+      <div class="window-title">
+        <span class="live-dot"></span>
+        <span id="active-channel-title">PBB All Access Studio</span>
+      </div>
+      <div class="viewer-pill" title="Watching Now">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        <span id="viewer-count">1</span>
+      </div>
+    </div>
+
+    <div class="mac-content">
+      <!-- Video Stage -->
+      <div id="stage">
+        <div class="vid-container" id="vid-container">
+          <video id="v" playsinline></video>
+          <div id="hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+            Tap to unmute
+          </div>
+        </div>
+
+        <!-- 4-View Multi-Grid -->
+        <div id="grid-container">
+          <div class="grid-item" data-idx="0">
+            <div class="grid-label"><span class="mini-dot"></span>Main Live</div>
+            <video id="gv0" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="1">
+            <div class="grid-label"><span class="mini-dot"></span>Dining Area</div>
+            <video id="gv1" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="2">
+            <div class="grid-label"><span class="mini-dot"></span>External Den</div>
+            <video id="gv2" playsinline muted></video>
+          </div>
+          <div class="grid-item" data-idx="3">
+            <div class="grid-label"><span class="mini-dot"></span>Live Episode</div>
+            <video id="gv3" playsinline muted></video>
+          </div>
+        </div>
+
+        <!-- Frosted Loading Overlay -->
+        <div id="load" class="show">
+          <div class="load-glass">
+            <div class="arc"></div>
+            <div class="t">Buffering Stream</div>
+            <div class="s">Starting...</div>
+          </div>
+        </div>
+
+        <!-- Polished Floating HUD Controls -->
+        <div id="controls">
+          <div class="hud-top">
+            <div class="status-left">
+              <span class="mini-live-dot"></span>
+              <span class="live-tag-left">LIVE STREAM</span>
+            </div>
+            <button class="live-badge-right" id="live-btn" title="Jump to Live Edge">LIVE</button>
+          </div>
+
+          <div class="hud-bottom">
+            <div class="ctrl-group">
+              <button class="btn-icn" id="play-btn" title="Play/Pause">
+                <svg id="play-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              <div class="vol-wrapper">
+                <button class="btn-icn" id="mute-btn" title="Mute/Unmute">
+                  <svg id="vol-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                </button>
+                <input type="range" id="vol-slider" min="0" max="1" step="0.01" value="1">
+              </div>
+            </div>
+
+            <div class="ctrl-group">
+              
+              <button class="btn-icn pill-btn" id="grid-btn" title="4-View Multi-Cam">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M3 3v8h8V3H3zm6 6H5V5h4v4zM3 13v8h8v-8H3zm6 6H5v-4h4v4zm2-16h8v8h-8V3zm6 6h-4V5h4v4zm-8 4h8v8h-8v-8zm6 6h-4v-4h4v4z"/></svg>
+                <span class="hide-mobile">Multi-View</span>
+              </button>
+              <button class="btn-icn" id="pip-btn" title="Picture-in-Picture">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
+              </button>
+              <div class="reso-wrapper" style="position: relative;">
+                <button class="btn-icn" id="reso-btn" title="Quality">
+                  <span id="reso-label">AUTO</span>
+                </button>
+                <div id="reso-menu" class="hidden"></div>
+              </div>
+              <button class="btn-icn" id="fs-btn" title="Full Screen">
+                <svg id="fs-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- macOS Frosted Sidebar / Channel Dock -->
+      <div id="side">
+        <div class="sidebar-header">
+          <div id="title">CAMERA FEEDS</div>
+          <div class="header-badges">
+            <button id="donate-btn" class="support-badge" title="Support the Stream">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              SUPPORT
+            </button>
+          </div>
+        </div>
+        <div id="channels"></div>
+
+        <!-- Minimal Watermark Footer -->
+        <div class="mac-footer">
+          ENCODED BY PSYCHO PATTERN
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium Glass Support Modal -->
+  <div id="support-modal" class="hidden">
+    <div class="support-glass">
+      <button id="close-support" class="modal-close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="support-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#ff375f" stroke="none">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+        </svg>
+      </div>
+      <h3 class="support-title">Support the Stream</h3>
+      <p class="support-desc">Your contributions help maintain server costs and keep the studio running 24/7.</p>
+
+      <div class="support-details">
+        <div class="detail-row">
+          <div class="detail-text">
+            <span class="detail-label">GCash / Maya</span>
+            <span class="detail-val" id="val-gcash">09626615296</span>
+          </div>
+          <button class="copy-btn" data-target="val-gcash" title="Copy Number">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+        <div class="detail-row">
+          <div class="detail-text">
+            <span class="detail-label">Mari Bank</span>
+            <span class="detail-val" id="val-mari">15978919557</span>
+          </div>
+          <button class="copy-btn" data-target="val-mari" title="Copy Number">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.14.8/dist/shaka-player.compiled.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="data.js?v=3.0"></script>
+  <script src="script.js?v=3.2"></script>
+</body>
+</html>
